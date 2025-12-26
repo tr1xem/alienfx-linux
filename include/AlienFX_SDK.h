@@ -199,8 +199,8 @@ class Functions {
     // Check device and initialize data
     // vid/pid the same as above
     // Returns true if device found and initialized.
-    bool AlienFXProbeDevice(libusb_device *device, unsigned short vid = 0,
-                            unsigned short pid = 0);
+    bool AlienFXProbeDevice(libusb_device *device, unsigned short vidd = 0,
+                            unsigned short pidd = 0);
 
     // Prepare to set lights
     bool Reset();
