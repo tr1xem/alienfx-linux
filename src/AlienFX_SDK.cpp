@@ -243,8 +243,8 @@ bool Functions::SetColor(unsigned char index, Afx_action c) {
 bool Functions::SetAction(Afx_lightblock *act) {
     if (act->act.empty())
         return false;
-    // if (!inSet)
-    //     Reset();
+    if (!inSet)
+        Reset();
 
     vector<Afx_icommand> mods;
     switch (version) {
@@ -283,12 +283,13 @@ bool Functions::SetAction(Afx_lightblock *act) {
     case API_V4:
         // check types and call
         switch (act->act.front().type) {
-        case AlienFX_A_Color: // it's a color, so set as color
-            return PrepareAndSend(
-                COMMV4_setOneColor,
-                {{3,
-                  {act->act.front().r, act->act.front().g, act->act.front().b,
-                   0, 1, (std::uint8_t)act->index}}});
+        // case AlienFX_A_Color: // it's a color, so set as color
+        //     return PrepareAndSend(
+        //         COMMV4_setOneColor,
+        //         {{3,
+        //           {act->act.front().r, act->act.front().g,
+        //           act->act.front().b,
+        //            0, 1, (std::uint8_t)act->index}}});
         case AlienFX_A_Power: { // Set power
             std::cout << "A_Power not implemented yet" << std::endl;
             return false;
@@ -360,6 +361,8 @@ bool Functions::PrepareAndSend(const unsigned char *command,
 
         if (mods) {
             for (auto &m : *mods) {
+                // NOTE: As in linux size is 33 so we need to substract 1 from
+                // vval in windows its 34
                 memcpy(buffer + m.i, m.vval.data(), m.vval.size());
             }
             needV8Feature = mods->front().vval.size() == 1;
@@ -420,8 +423,17 @@ bool Functions::SetV4Action(Afx_lightblock *act) {
     vector<Afx_icommand> mods;
     PrepareAndSend(COMMV4_colorSel, {{6, {act->index}}});
     for (auto ca = act->act.begin(); ca != act->act.end();) {
-        // 3 actions per record..
+        auto &a = *ca;
 
+        std::cout << "Action:"
+                  << " type=" << static_cast<int>(a.type)
+                  << " time=" << static_cast<int>(a.time)
+                  << " tempo=" << static_cast<int>(a.tempo)
+                  << " r=" << static_cast<int>(a.r)
+                  << " g=" << static_cast<int>(a.g)
+                  << " b=" << static_cast<int>(a.b) << std::endl;
+
+        // 3 actions per record..
         for (std::uint8_t bPos = 3; bPos < length && ca != act->act.end();
              bPos += 8) {
             mods.push_back(
@@ -442,7 +454,7 @@ bool Functions::SetV4Action(Afx_lightblock *act) {
 
 bool Functions::UpdateColors() {
 
-    if (!inSet) {
+    if (inSet) {
         switch (version) {
         // case API_V9:
         //	inSet = !PrepareAndSend(COMMV9_update);
@@ -467,6 +479,46 @@ bool Functions::UpdateColors() {
         }
     }
     return !inSet;
+}
+
+bool Functions::Reset() {
+    switch (version) {
+    // case API_V9:
+    //	if (chain) {
+    //		PrepareAndSend(COMMV9_update);
+    //		GetDeviceStatus();
+    //		chain = 0;
+    //	}
+    //	break;
+    case API_V6:
+        // need initial reset if not done
+        if (chain) {
+            inSet = PrepareAndSend(COMMV6_systemReset);
+            chain = 0;
+        } else
+            inSet = true;
+        break;
+    case API_V5: {
+        inSet = PrepareAndSend(COMMV5_reset);
+        // GetDeviceStatus();
+    } break;
+    case API_V4: {
+        // WaitForReady();
+        PrepareAndSend(COMMV4_control, {{3, {4}} /*, { 5, 0xff }*/});
+        inSet = PrepareAndSend(COMMV4_control, {{3, {1}} /*, { 5, 0xff }*/});
+    } break;
+    case API_V3:
+    case API_V2: {
+        chain = 1;
+        inSet = PrepareAndSend(COMMV1_reset);
+        // WaitForReady();
+        // DebugPrint("Post-Reset status: " + to_string(GetDeviceStatus()) +
+        // "\n");
+    } break;
+    default:
+        inSet = true;
+    }
+    return inSet;
 }
 
 } // namespace AlienFX_SDK

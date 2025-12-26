@@ -18,7 +18,14 @@ int main() {
              << endl;
         if (afx_map.fxdevs[i].dev) {
             LOG_S(INFO) << "Now trying light 2 to blue... ";
-            afx_map.fxdevs[i].dev->SetColor(2, {255, 255});
+
+            afx_map.fxdevs[i].dev->SetColor(
+                0, {AlienFX_SDK::AlienFX_A_Color, 5, 64, 255, 0, 0});
+            // afx_map.fxdevs[i].dev->UpdateColors();
+            afx_map.fxdevs[i].dev->SetColor(
+                1, {AlienFX_SDK::AlienFX_A_Color, 5, 64, 000, 255, 255});
+            afx_map.fxdevs[i].dev->SetColor(
+                2, {AlienFX_SDK::AlienFX_A_Color, 5, 64, 255, 255, 255});
             afx_map.fxdevs[i].dev->UpdateColors();
             // 	cout << "Now trying light 3 to mixed... ";
             // 	afx_map.fxdevs[i].dev->SetColor(3, { 255, 255 });
