@@ -131,8 +131,8 @@ enum Action {
 
 class Functions {
   private:
-    libusb_device_handle *devHandle = NULL; // USB device handle, NULL if not
-    void *ACPIdevice = NULL;                // ACPI device object pointer
+    libusb_device *devHandle = NULL; // USB device handle, NULL if not
+    void *ACPIdevice = NULL;         // ACPI device object pointer
 
     bool inSet = false;
 
