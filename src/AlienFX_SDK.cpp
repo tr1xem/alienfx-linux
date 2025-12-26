@@ -8,6 +8,7 @@ void Mappings::LoadMappings() {
     // TODO: implement
     LOG_S(INFO) << "Load mappings";
 }
+
 bool Mappings::AlienFXEnumDevices(void *acc) {
     LOG_S(INFO) << "Enumerating devices";
     Functions *dev = nullptr;
@@ -52,8 +53,10 @@ bool Mappings::AlienFXEnumDevices(void *acc) {
 
         // Try to probe/initialize this device
         if (dev->AlienFXProbeDevice(device, desc.idVendor, desc.idProduct)) {
+#ifdef DEBUG
             LOG_S(INFO) << "Found AlienFX device - VID: 0x" << std::hex
                         << desc.idVendor << ", PID: 0x" << desc.idProduct;
+#endif
             AlienFxUpdateDevice(dev);
         } else {
             // Device probe failed, clean up
@@ -81,13 +84,42 @@ bool Mappings::AlienFXEnumDevices(void *acc) {
 }
 
 void Mappings::AlienFxUpdateDevice(Functions *dev) {
-    // TODO: implement
-    LOG_S(INFO) << "Update device";
+    // TODO: Devinfo persistant vector
+    LOG_S(INFO) << "Update device " << dev->pid << ":" << dev->vid;
+    // auto devInfo = GetDeviceById(dev->pid, dev->vid);
+    // if (devInfo) {
+    //     devInfo->version = dev->version;
+    //     devInfo->present = true;
+    //     activeLights += (unsigned)devInfo->lights.size();
+    //     if (devInfo->dev) {
+    //         delete dev;
+    //         DebugPrint("Scan: VID: " + to_string(devInfo->vid) +
+    //                    ", PID: " + to_string(devInfo->pid) + ", Version: " +
+    //                    to_string(devInfo->version) + " - present already\n");
+    //         devInfo->arrived = false;
+    //     } else {
+    //         devInfo->dev = dev;
+    //         deviceListChanged = devInfo->arrived = true;
+    //         DebugPrint("Scan: VID: " + to_string(devInfo->vid) +
+    //                    ", PID: " + to_string(devInfo->pid) + ", Version: " +
+    //                    to_string(devInfo->version) + " - return back\n");
+    //     }
+    //     activeDevices++;
+    // } else {
+    fxdevs.push_back({dev->pid, dev->vid, dev, dev->description, dev->version});
+    deviceListChanged = fxdevs.back().arrived = fxdevs.back().present = true;
+    activeDevices++;
+#ifdef DEBUG
+    LOG_S(INFO) << "Scan: VID: " << to_string(dev->vid)
+                << ", PID: " << to_string(dev->pid)
+                << ", Version: " << to_string(dev->version)
+                << " - new device added\n";
+#endif
+    //}
 }
 
-bool Functions::AlienFXProbeDevice(libusb_device *device, unsigned short vid,
-                                   unsigned short pid) {
-    int length{};
+bool Functions::AlienFXProbeDevice(libusb_device *device, unsigned short vidd,
+                                   unsigned short pidd) {
     version = API_UNKNOWN;
     libusb_config_descriptor *config = nullptr;
     int result = libusb_get_config_descriptor(device, 0, &config);
@@ -122,7 +154,7 @@ bool Functions::AlienFXProbeDevice(libusb_device *device, unsigned short vid,
             }
         }
     }
-    switch (vid) {
+    switch (vidd) {
     case 0x0d62: // Darfon
         // if (caps.Usage == 0xcc && !length) {
         //     length = caps.FeatureReportByteLength;
@@ -149,9 +181,9 @@ bool Functions::AlienFXProbeDevice(libusb_device *device, unsigned short vid,
         break;
     default:
         if (length == 65)
-            switch (vid) {
+            switch (vidd) {
             case 0x0424: // Microchip
-                if (pid != 0x274c)
+                if (pidd != 0x274c)
                     version = API_V6;
                 break;
             case 0x0461: // Primax
@@ -167,6 +199,32 @@ bool Functions::AlienFXProbeDevice(libusb_device *device, unsigned short vid,
     LOG_S(INFO) << "Probing device VID: 0x" << std::hex << vid << ", PID: 0x"
                 << pid << ", Version: " << version << ", Length: " << length;
 #endif
+    if (version == API_UNKNOWN) {
+        return false;
+    } else {
+        pid = pidd;
+        vid = vidd;
+        libusb_device_descriptor desc{};
+        libusb_get_device_descriptor(device, &desc);
+        libusb_device_handle *handle = nullptr;
+        unsigned char buf[256];
+        if (libusb_open(device, &handle) != 0) {
+            // libusb_free_config_descriptor(config);
+            return false;
+        }
+        if (desc.iManufacturer &&
+            libusb_get_string_descriptor_ascii(handle, desc.iManufacturer, buf,
+                                               sizeof(buf)) > 0) {
+            description.append(reinterpret_cast<char *>(buf));
+        }
+        description.append(" ");
+        if (desc.iProduct && libusb_get_string_descriptor_ascii(
+                                 handle, desc.iProduct, buf, sizeof(buf)) > 0) {
+            description.append(reinterpret_cast<char *>(buf));
+        }
+    }
+    std::cout << description << std::endl;
+
     return version != API_UNKNOWN;
 }
 
