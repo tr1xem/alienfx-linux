@@ -256,20 +256,18 @@ bool Functions::SetAction(Afx_lightblock *act) {
         // PrepareAndSend(COMMV8_readyToColor);
         // return PrepareAndSend(COMMV8_readyToColor, &mods);
     case API_V7: {
-        std::cout << "V7 not implemented yet" << std::endl;
-        return false;
-        // mods = {{5, {v7OpCodes[act->act.front().type], bright, act->index}}};
-        // for (int ca = 0; ca < act->act.size(); ca++) {
-        //     if (ca * 3 + 10 < length)
-        //         mods.push_back({ca * 3 + 8,
-        //                         {act->act.at(ca).r, act->act.at(ca).g,
-        //                          act->act.at(ca).b}});
-        // }
-        // return PrepareAndSend(COMMV7_control, &mods);
+        mods = {{5, {v7OpCodes[act->act.front().type], bright, act->index}}};
+        for (int ca = 0; ca < act->act.size(); ca++) {
+            if (ca * 3 + 10 < length)
+                mods.push_back({ca * 3 + 8,
+                                {act->act.at(ca).r, act->act.at(ca).g,
+                                 act->act.at(ca).b}});
+        }
+        return PrepareAndSend(COMMV7_control, &mods);
     }
     case API_V6:
-        std::cout << "V6 not implemented yet" << std::endl;
-        return false;
+        // std::cout << "V6 not implemented yet" << std::endl;
+        // return false;
         // return PrepareAndSend(COMMV6_colorSet, SetMaskAndColor(&mods, act));
     // case API_V9:
     //	return PrepareAndSend(COMMV9_colorSet, SetMaskAndColor(&mods, act));
@@ -283,13 +281,14 @@ bool Functions::SetAction(Afx_lightblock *act) {
     case API_V4:
         // check types and call
         switch (act->act.front().type) {
-        // case AlienFX_A_Color: // it's a color, so set as color
-        //     return PrepareAndSend(
-        //         COMMV4_setOneColor,
-        //         {{3,
-        //           {act->act.front().r, act->act.front().g,
-        //           act->act.front().b,
-        //            0, 1, (std::uint8_t)act->index}}});
+        // FIX: Inspect this
+        //  case AlienFX_A_Color: // it's a color, so set as color
+        //      return PrepareAndSend(
+        //          COMMV4_setOneColor,
+        //          {{3,
+        //            {act->act.front().r, act->act.front().g,
+        //            act->act.front().b,
+        //             0, 1, (std::uint8_t)act->index}}});
         case AlienFX_A_Power: { // Set power
             std::cout << "A_Power not implemented yet" << std::endl;
             return false;
@@ -298,49 +297,51 @@ bool Functions::SetAction(Afx_lightblock *act) {
         } break;
         default: // Set action
             return SetV4Action(act);
-            // std::cout << "V4_Action not implemented yet" << std::endl;
-            // return false;
         }
     case API_V3:
     case API_V2: {
         std::cout << "V2 not implemented yet" << std::endl;
         return false;
-        // bool res = false;
-        // // check types and call
-        // switch (act->act.front().type) {
-        // case AlienFX_A_Power: { // SetPowerAction for power!
-        //     if (act->act.size() > 1) {
-        //         vector<Afx_lightblock> t = {{*act}};
-        //         return SetPowerAction(&t);
-        //     }
-        //     break;
-        // }
-        // case AlienFX_A_Color:
-        //     break;
-        // default:
-        //     PrepareAndSend(
-        //         COMMV1_setTempo,
-        //         {{2,
-        //           {(std::uint8_t)(((WORD)act->act.front().tempo << 3 &
-        //           0xff00) >> 8),
-        //            (std::uint8_t)((WORD)act->act.front().tempo << 3 & 0xff),
-        //            (std::uint8_t)(((WORD)act->act.front().time << 5 & 0xff00)
-        //            >> 8), (std::uint8_t)((WORD)act->act.front().time << 5 &
-        //            0xff)}}});
-        //     PrepareAndSend(COMMV1_loop);
-        // }
-        // for (auto ca = act->act.begin(); ca != act->act.end(); ca++) {
-        //     Afx_lightblock t = {act->index, {*ca}};
-        //     if (act->act.size() > 1)
-        //         t.act.push_back(ca + 1 != act->act.end() ? *(ca + 1)
-        //                                                  : act->act.front());
-        //     DebugPrint("SDK: Set light " + to_string(act->index) + "\n");
-        //     PrepareAndSend(COMMV1_color, SetMaskAndColor(&mods, &t));
-        // }
-        // // DebugPrint("SDK: Loop\n");
-        // res = PrepareAndSend(COMMV1_loop);
-        // chain++;
-        // return res;
+        bool res = false;
+        // check types and call
+        switch (act->act.front().type) {
+        case AlienFX_A_Power: { // SetPowerAction for power!
+            if (act->act.size() > 1) {
+                vector<Afx_lightblock> t = {{*act}};
+                return SetPowerAction(&t);
+            }
+            break;
+        }
+        case AlienFX_A_Color:
+            break;
+        default:
+            PrepareAndSend(
+                COMMV1_setTempo,
+                {{2,
+                  {(std::uint8_t)(((unsigned short)act->act.front().tempo << 3 &
+                                   0xff00) >>
+                                  8),
+                   (std::uint8_t)((unsigned short)act->act.front().tempo << 3 &
+                                  0xff),
+                   (std::uint8_t)(((unsigned short)act->act.front().time << 5 &
+                                   0xff00) >>
+                                  8),
+                   (std::uint8_t)((unsigned short)act->act.front().time << 5 &
+                                  0xff)}}});
+            PrepareAndSend(COMMV1_loop);
+        }
+        for (auto ca = act->act.begin(); ca != act->act.end(); ca++) {
+            Afx_lightblock t = {act->index, {*ca}};
+            if (act->act.size() > 1)
+                t.act.push_back(ca + 1 != act->act.end() ? *(ca + 1)
+                                                         : act->act.front());
+            LOG_S(INFO) << "SDK: Set light " << act->index << "\n";
+            PrepareAndSend(COMMV1_color, SetMaskAndColor(&mods, &t));
+        }
+        // DebugPrint("SDK: Loop\n");
+        res = PrepareAndSend(COMMV1_loop);
+        chain++;
+        return res;
     }
     }
     return false;
@@ -363,7 +364,7 @@ bool Functions::PrepareAndSend(const unsigned char *command,
             for (auto &m : *mods) {
                 // NOTE: As in linux size is 33 so we need to substract 1 from
                 // vval in windows its 34
-                memcpy(buffer + m.i, m.vval.data(), m.vval.size());
+                memcpy(buffer + (m.i - 1), m.vval.data(), m.vval.size());
             }
             needV8Feature = mods->front().vval.size() == 1;
             mods->clear();
@@ -421,17 +422,19 @@ bool Functions::PrepareAndSend(const unsigned char *command,
 bool Functions::SetV4Action(Afx_lightblock *act) {
     bool res = false;
     vector<Afx_icommand> mods;
-    PrepareAndSend(COMMV4_colorSel, {{6, {act->index}}});
+    PrepareAndSend(COMMV4_colorSel, {{5, {act->index}}});
     for (auto ca = act->act.begin(); ca != act->act.end();) {
         auto &a = *ca;
 
-        std::cout << "Action:"
-                  << " type=" << static_cast<int>(a.type)
-                  << " time=" << static_cast<int>(a.time)
-                  << " tempo=" << static_cast<int>(a.tempo)
-                  << " r=" << static_cast<int>(a.r)
-                  << " g=" << static_cast<int>(a.g)
-                  << " b=" << static_cast<int>(a.b) << std::endl;
+#ifdef DEBUG
+        LOG_S(INFO) << "Action:"
+                    << " type=" << static_cast<int>(a.type)
+                    << " time=" << static_cast<int>(a.time)
+                    << " tempo=" << static_cast<int>(a.tempo)
+                    << " r=" << static_cast<int>(a.r)
+                    << " g=" << static_cast<int>(a.g)
+                    << " b=" << static_cast<int>(a.b) << std::endl;
+#endif
 
         // 3 actions per record..
         for (std::uint8_t bPos = 3; bPos < length && ca != act->act.end();
@@ -504,8 +507,8 @@ bool Functions::Reset() {
     } break;
     case API_V4: {
         // WaitForReady();
-        PrepareAndSend(COMMV4_control, {{3, {4}} /*, { 5, 0xff }*/});
-        inSet = PrepareAndSend(COMMV4_control, {{3, {1}} /*, { 5, 0xff }*/});
+        PrepareAndSend(COMMV4_control, {{4, {4}} /*, { 5, 0xff }*/});
+        inSet = PrepareAndSend(COMMV4_control, {{4, {1}} /*, { 5, 0xff }*/});
     } break;
     case API_V3:
     case API_V2: {
