@@ -425,99 +425,96 @@ inline bool Functions::PrepareAndSend(const unsigned char *command,
 bool Functions::PrepareAndSend(const unsigned char *command,
                                vector<Afx_icommand> *mods) {
 
-    if (devHandle) { // Is device initialized?
-        std::uint8_t buffer[MAX_BUFFERSIZE];
-        int transferred = 0;
-        bool needV8Feature = true;
-        memset(buffer, version == API_V6 ? 0xff : 0x00, length);
-        memcpy(buffer, command + 1, command[0]);
+    std::uint8_t buffer[MAX_BUFFERSIZE];
+    int transferred = 0;
+    bool needV8Feature = true;
+    memset(buffer, version == API_V6 ? 0xff : 0x00, length);
+    memcpy(buffer, command + 1, command[0]);
 
-        if (mods) {
-            for (auto &m : *mods) {
-                // NOTE: As in linux size is 33 so we need to substract 1 from
-                // vval in windows its 34
-                memcpy(buffer + (m.i - 1), m.vval.data(), m.vval.size());
-            }
-            needV8Feature = mods->front().vval.size() == 1;
-            mods->clear();
+    if (mods) {
+        for (auto &m : *mods) {
+            // NOTE: As in linux size is 33 so we need to substract 1 from
+            // vval in windows its 34
+            memcpy(buffer + (m.i - 1), m.vval.data(), m.vval.size());
         }
-        LOG_S(INFO) << "Sending USB packet (" << length << " std::uint8_ts): ";
-        for (int i = 0; i < length; i++) {
-            std::cout << std::hex << std::setw(2) << std::setfill('0')
-                      << static_cast<int>(buffer[i]) << " ";
-        }
-        std::cout << std::dec << std::endl; // reset back to decimal formatting
-        libusb_context *ctx = nullptr;
-        libusb_init(&ctx);
-        libusb_device_handle *handle =
-            libusb_open_device_with_vid_pid(ctx, vid, pid);
-        if (libusb_kernel_driver_active(handle, 0) == 1) {
-            int rc = libusb_detach_kernel_driver(handle, 0);
-            if (rc != 0) {
-                LOG_S(ERROR) << "Failed to detach kernel driver: "
-                             << libusb_error_name(rc);
-                return false;
-            }
-        }
-        if (!handle) {
-            std::cerr << "Failed to open device\n";
-            return false;
-        }
-
-        int rc = libusb_claim_interface(handle, 0);
+        needV8Feature = mods->front().vval.size() == 1;
+        mods->clear();
+    }
+    LOG_S(INFO) << "Sending USB packet (" << length << " std::uint8_ts): ";
+    for (int i = 0; i < length; i++) {
+        std::cout << std::hex << std::setw(2) << std::setfill('0')
+                  << static_cast<int>(buffer[i]) << " ";
+    }
+    std::cout << std::dec << std::endl; // reset back to decimal formatting
+    libusb_context *ctx = nullptr;
+    libusb_init(&ctx);
+    libusb_device_handle *handle =
+        libusb_open_device_with_vid_pid(ctx, vid, pid);
+    if (libusb_kernel_driver_active(handle, 0) == 1) {
+        int rc = libusb_detach_kernel_driver(handle, 0);
         if (rc != 0) {
-            std::cerr << "Failed to claim interface: " << libusb_error_name(rc)
-                      << "\n";
-            libusb_close(handle);
+            LOG_S(ERROR) << "Failed to detach kernel driver: "
+                         << libusb_error_name(rc);
             return false;
         }
+    }
+    if (!handle) {
+        std::cerr << "Failed to open device\n";
+        return false;
+    }
 
-        switch (version) {
-        case API_V2:
-        case API_V3:
-        case API_V4:
+    int rc = libusb_claim_interface(handle, 0);
+    if (rc != 0) {
+        std::cerr << "Failed to claim interface: " << libusb_error_name(rc)
+                  << "\n";
+        libusb_close(handle);
+        return false;
+    }
 
-            // return 1;
-            rc = libusb_control_transfer(
-                handle,
-                0x21, // VENDOR
-                0x09, // SET_REPORT
-                0x202, 0, reinterpret_cast<unsigned char *>(buffer), length,
-                1000);
-            libusb_release_interface(handle, 0);
-            libusb_close(handle);
-            libusb_exit(ctx);
-            return rc >= 0;
-        case API_V5:
-            return false;
-            // res =  DeviceIoControl(devHandle, IOCTL_HID_SET_FEATURE, buffer,
-            // length, 0, 0, &written, NULL);
-            // return HidD_SetFeature(devHandle, buffer, length);
-            break;
-        case API_V6:
-            return false;
-            // /*res =*/return WriteFile(devHandle, buffer, length, &written,
-            //                           NULL);
-            // if (size == 3)
-            //	res &= ReadFile(devHandle, buffer, length, &written, NULL);
-            break;
-        case API_V7:
-            return false;
-            // WriteFile(devHandle, buffer, length, &written, NULL);
-            // return ReadFile(devHandle, buffer, length, &written, NULL);
-            break;
-        case API_V8:
-            return false;
-            // if (needV8Feature) {
-            //     Sleep(3);
-            //     bool res = HidD_SetFeature(devHandle, buffer, length);
-            //     Sleep(6);
-            //     return res;
-            // } else {
-            //     return WriteFile(devHandle, buffer, length, &written, NULL);
-            // }
-            break;
-        }
+    switch (version) {
+    case API_V2:
+    case API_V3:
+    case API_V4:
+
+        // return 1;
+        rc = libusb_control_transfer(
+            handle,
+            0x21, // VENDOR
+            0x09, // SET_REPORT
+            0x202, 0, reinterpret_cast<unsigned char *>(buffer), length, 1000);
+        libusb_release_interface(handle, 0);
+        libusb_close(handle);
+        libusb_exit(ctx);
+        return rc >= 0;
+    case API_V5:
+        return false;
+        // res =  DeviceIoControl(devHandle, IOCTL_HID_SET_FEATURE, buffer,
+        // length, 0, 0, &written, NULL);
+        // return HidD_SetFeature(devHandle, buffer, length);
+        break;
+    case API_V6:
+        return false;
+        // /*res =*/return WriteFile(devHandle, buffer, length, &written,
+        //                           NULL);
+        // if (size == 3)
+        //	res &= ReadFile(devHandle, buffer, length, &written, NULL);
+        break;
+    case API_V7:
+        return false;
+        // WriteFile(devHandle, buffer, length, &written, NULL);
+        // return ReadFile(devHandle, buffer, length, &written, NULL);
+        break;
+    case API_V8:
+        return false;
+        // if (needV8Feature) {
+        //     Sleep(3);
+        //     bool res = HidD_SetFeature(devHandle, buffer, length);
+        //     Sleep(6);
+        //     return res;
+        // } else {
+        //     return WriteFile(devHandle, buffer, length, &written, NULL);
+        // }
+        break;
     }
     return false;
 }
