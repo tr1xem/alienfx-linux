@@ -81,8 +81,15 @@ bool Functions::PrepareAndSend(const uint8_t *command,
     std::uint8_t buffer[MAX_BUFFERSIZE];
     int written{0};
     bool needV8Feature = true;
-    memset(buffer, version == API_V6 ? 0xff : 0x00, length);
-    memcpy(buffer, command + 1, command[0]);
+    if (reportIDList[version] == 0) {
+        memset(buffer, version == API_V6 ? 0xff : 0x00, length);
+        memcpy(buffer, command + 1, command[0]);
+    } else {
+        memset(buffer, version == API_V6 ? 0xff : 0x00, length);
+        memcpy(buffer, command, command[0] + 1);
+        buffer[0] = reportIDList[version];
+    }
+    // if (version == API_V8 || version == API_V5)
     //     buffer[0] = reportIDList[version];
 
     if (mods) {
