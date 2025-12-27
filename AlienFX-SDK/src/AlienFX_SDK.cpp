@@ -228,10 +228,10 @@ bool Functions::AlienFXProbeDevice(libusb_device *device, libusb_context *ctxx,
     }
     switch (vidd) {
     case 0x0d62: // Darfon
-        LOG_S(ERROR) << "Darfon detected testing needed open a issue";
+        version = API_V5;
+        // LOG_S(ERROR) << "Darfon detected testing needed open a issue";
         // if (caps.Usage == 0xcc && !length) {
         //     length = caps.FeatureReportstd::uint8_tLength;
-        //     version = API_V5;
         // }
         break;
     case 0x187c: // Alienware
