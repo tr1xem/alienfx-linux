@@ -17,9 +17,21 @@ int main() {
         LOG_S(INFO) << hex << "VID: 0x" << afx_map.fxdevs[i].vid << ", PID: 0x"
                     << afx_map.fxdevs[i].pid << ", API v"
                     << afx_map.fxdevs[i].version;
-        if (afx_map.fxdevs[i].dev) {
+        if (afx_map.fxdevs[i].dev != nullptr) {
             LOG_S(INFO) << "Testing device " << i << "... ";
             //
+            // NOTE: SET KEYBOARD ZONE COLOR - Passed
+
+            // std::vector<AlienFX_SDK::Afx_action> action_zone{};
+            // action_zone.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Color, 2, 64, 255, 255, 255});
+            // std::vector<AlienFX_SDK::Afx_lightblock> lights;
+            // lights.push_back({0, action_zone});
+            // lights.push_back({1, action_zone});
+            // lights.push_back({2, action_zone});
+            // lights.push_back({3, action_zone});
+            // afx_map.fxdevs[i].dev->SetMultiAction(&lights, true);
+            // afx_map.fxdevs[i].dev->UpdateColors();
 
             // NOTE: Multicolor test - Passed
             //
@@ -95,37 +107,36 @@ int main() {
             // lights.push_back({1, action_zone2});
             // lights.push_back({2, action_zone3});
             // lights.push_back({3, action_zone4});
-            // afx_map.fxdevs[i].dev->SetMultiAction(&lights);
+            // afx_map.fxdevs[i].dev->SetMultiAction(&lights, true);
             // afx_map.fxdevs[i].dev->UpdateColors();
 
             // NOTE: Brightness Test - Passed
             //
-            //  AlienFX_SDK::Afx_light keyboard_zone1{.lightid = 0,
-            //                                        .flags = 0x0000,
-            //                                        .scancode = 0x0000,
-            //                                        .name = "Keyboard Zone
-            //                                        1"};
+            // AlienFX_SDK::Afx_light keyboard_zone1{.lightid = 0,
+            //                                       .flags = 0x0000,
+            //                                       .scancode = 0x0000,
+            //                                       .name = "Keyboard Zone1"};
             //
-            //  AlienFX_SDK::Afx_light keyboard_zone2{.lightid = 1,
-            //                                        .flags = 0x0000,
-            //                                        .scancode = 0x0001,
-            //                                        .name = "Keyboard Zone
-            //                                        2"};
-            //  AlienFX_SDK::Afx_light keyboard_zone3{.lightid = 2,
-            //                                        .flags = 0x0000,
-            //                                        .scancode = 0x0002,
-            //                                        .name = "Keyboard Zone
-            //                                        3"};
-            //  AlienFX_SDK::Afx_light keyboard_zone4{.lightid = 3,
-            //                                        .flags = 0x0000,
-            //                                        .scancode = 0x0003,
-            //                                        .name = "Keyboard Zone
-            //                                        4"};
-            //  afx_map.fxdevs[i].lights.push_back(keyboard_zone1);
-            //  afx_map.fxdevs[i].lights.push_back(keyboard_zone2);
-            //  afx_map.fxdevs[i].lights.push_back(keyboard_zone3);
-            //  afx_map.fxdevs[i].lights.push_back(keyboard_zone4);
-            //  afx_map.SetDeviceBrightness(&afx_map.fxdevs[i], 255, true);
+            // AlienFX_SDK::Afx_light keyboard_zone2{.lightid = 1,
+            //                                       .flags = 0x0000,
+            //                                       .scancode = 0x0001,
+            //                                       .name = "Keyboard Zone2"};
+            //
+            // AlienFX_SDK::Afx_light keyboard_zone3{.lightid = 2,
+            //                                       .flags = 0x0000,
+            //                                       .scancode = 0x0002,
+            //                                       .name = "Keyboard Zone3"};
+            //
+            // AlienFX_SDK::Afx_light keyboard_zone4{.lightid = 3,
+            //                                       .flags = 0x0000,
+            //                                       .scancode = 0x0003,
+            //                                       .name = "Keyboard Zone4"};
+            //
+            // afx_map.fxdevs[i].lights.push_back(keyboard_zone1);
+            // afx_map.fxdevs[i].lights.push_back(keyboard_zone2);
+            // afx_map.fxdevs[i].lights.push_back(keyboard_zone3);
+            // afx_map.fxdevs[i].lights.push_back(keyboard_zone4);
+            // afx_map.SetDeviceBrightness(&afx_map.fxdevs[i], 255, false);
 
             // NOTE: Multicolor test - Passed
             //
