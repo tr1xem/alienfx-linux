@@ -1,6 +1,6 @@
 #include <cstdint>
-#include <iostream>
 #include <libusb.h>
+#include <loguru.hpp>
 
 #define HID_SET_REPORT 0x09
 #define HID_GET_REPORT 0x01
@@ -65,7 +65,7 @@ int HidD_GetFeature(libusb_device_handle *dev, uint8_t *buffer, size_t length,
         HID_GET_REPORT, (HID_REPORT_TYPE_FEATURE << 8) | report_id, iface,
         buffer, length, 1000);
     if (rc < 0) {
-        std::cerr << "GetFeature failed: " << rc << std::endl;
+        LOG_S(ERROR) << "Error in getting feature report: " << rc;
         return rc;
     }
     return rc; // number of bytes read

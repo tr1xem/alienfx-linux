@@ -90,7 +90,7 @@ struct Afx_device { // Single device data
         };
         unsigned long devID;
     };
-    Functions *dev = NULL;                 // device control object pointer
+    Functions *dev = nullptr;              // device control object pointer
     std::string name;                      // device name
     int version = API_UNKNOWN;             // API version used for this device
     Afx_colorcode white = {255, 255, 255}; // white balance
