@@ -24,7 +24,7 @@ int main() {
 
             std::vector<AlienFX_SDK::Afx_action> action_zone{};
             action_zone.push_back(
-                {AlienFX_SDK::AlienFX_A_Color, 2, 64, 255, 255, 255});
+                {AlienFX_SDK::AlienFX_A_Color, 2, 64, 0, 255, 255});
             std::vector<AlienFX_SDK::Afx_lightblock> lights;
             lights.push_back({0, action_zone});
             lights.push_back({1, action_zone});
@@ -146,18 +146,18 @@ int main() {
 
             // NOTE: Single Color Test - Passed
             //
-            //  afx_map.fxdevs[i].dev->SetColor(
-            //      0, {AlienFX_SDK::AlienFX_A_Color, 5, 64, 255, 255, 255});
-            //  afx_map.fxdevs[i].dev->SetColor(
-            //      1, {AlienFX_SDK::AlienFX_A_Color, 5, 64, 255, 255, 255});
-            //  afx_map.fxdevs[i].dev->SetColor(
-            //      2, {AlienFX_SDK::AlienFX_A_Color, 5, 64, 255, 255, 255});
-            //  afx_map.fxdevs[i].dev->SetColor(
-            //      3, {AlienFX_SDK::AlienFX_A_Color, 5, 64, 255, 255, 255});
-            //  afx_map.fxdevs[i].dev->UpdateColors();
-            //  	cout << "Now trying light 3 to mixed... ";
-            //  	afx_map.fxdevs[i].dev->SetColor(3, { 255, 255 });
-            //  	afx_map.fxdevs[i].dev->UpdateColors();
+            // afx_map.fxdevs[i].dev->SetColor(
+            //     0, {AlienFX_SDK::AlienFX_A_Color, 5, 64, 255, 255, 255});
+            // afx_map.fxdevs[i].dev->SetColor(
+            //     1, {AlienFX_SDK::AlienFX_A_Color, 5, 64, 255, 255, 255});
+            // afx_map.fxdevs[i].dev->SetColor(
+            //     2, {AlienFX_SDK::AlienFX_A_Color, 5, 64, 255, 255, 255});
+            // afx_map.fxdevs[i].dev->SetColor(
+            //     3, {AlienFX_SDK::AlienFX_A_Color, 5, 64, 255, 255, 255});
+            // afx_map.fxdevs[i].dev->UpdateColors();
+            // cout << "Now trying light 3 to mixed... ";
+            // afx_map.fxdevs[i].dev->SetColor(3, {255, 255});
+            // afx_map.fxdevs[i].dev->UpdateColors();
             //  	cin.get();
         } else {
             cout << "Device inactive, going next one." << endl;
