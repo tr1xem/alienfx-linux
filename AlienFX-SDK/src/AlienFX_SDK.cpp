@@ -83,6 +83,7 @@ bool Functions::PrepareAndSend(const uint8_t *command,
     bool needV8Feature = true;
     memset(buffer, version == API_V6 ? 0xff : 0x00, length);
     memcpy(buffer, command + 1, command[0]);
+    //     buffer[0] = reportIDList[version];
 
     if (mods) {
         for (auto &m : *mods) {
