@@ -195,44 +195,65 @@ bool Functions::AlienFXProbeDevice(libusb_device *device, libusb_context *ctxx,
     if (result != 0) {
         return false;
     }
+
     for (int ifc = 0; ifc < config->bNumInterfaces; ifc++) {
         const libusb_interface &iface = config->interface[ifc];
         for (int alt = 0; alt < iface.num_altsetting; alt++) {
             const libusb_interface_descriptor &altset = iface.altsetting[alt];
 
+            // printf("\nInterface %d, Alt %d:\n", ifc, alt);
+            // printf("  bInterfaceNumber    %u\n", altset.bInterfaceNumber);
+            // printf("  baltseternateSetting   %u\n",
+            // altset.bAlternateSetting); printf("  bNumEndpoints       %u\n",
+            // altset.bNumEndpoints); printf("  bInterfaceClass     0x%02x\n",
+            // altset.bInterfaceClass); printf("  bInterfaceSubClass  0x%02x\n",
+            // altset.bInterfaceSubClass); printf("  bInterfaceProtocol
+            // 0x%02x\n",
+            //        altset.bInterfaceProtocol);
+            // printf("  iInterface  %u\n", altset.iInterface);
+
             if (altset.bInterfaceClass != LIBUSB_CLASS_HID)
-                continue;
+                return false;
 
             for (int ep = 0; ep < altset.bNumEndpoints; ep++) {
                 const libusb_endpoint_descriptor &e = altset.endpoint[ep];
 
-                if ((e.bmAttributes & LIBUSB_TRANSFER_TYPE_MASK) !=
-                    LIBUSB_TRANSFER_TYPE_INTERRUPT)
-                    continue;
+                // printf("    Endpoint %d:\n", ep);
+                // printf(
+                //     "      bEndpointAddress 0x%02x (%s)\n",
+                //     e.bEndpointAddress, (e.bEndpointAddress &
+                //     LIBUSB_ENDPOINT_IN) ? "IN" : "OUT");
+                // printf("      bmAttributes     0x%02x\n", e.bmAttributes);
+                // printf("      wMaxPacketSize   %u\n",
+                //        e.wMaxPacketSize & 0x07FF);
+                // printf("      bInterval        %u\n", e.bInterval);
+                // if ((e.bmAttributes & LIBUSB_TRANSFER_TYPE_MASK) !=
+                //     LIBUSB_TRANSFER_TYPE_INTERRUPT)
+                //     continue;
 
                 // Store IN/OUT endpoint
                 if ((e.bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK) ==
-                    LIBUSB_ENDPOINT_OUT)
-                    out_ep = e.bEndpointAddress;
-                else
-                    in_ep = e.bEndpointAddress;
-
-                // Store OUT packet size for sending data
-                if ((e.bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK) ==
                     LIBUSB_ENDPOINT_OUT) {
                     length = e.wMaxPacketSize & 0x07FF;
-                    to_check = length + 1;
+                    out_ep = e.bEndpointAddress;
+                } else {
+                    length = e.wMaxPacketSize & 0x07FF;
+                    in_ep = e.bEndpointAddress;
                 }
+                to_check = length + 1;
             }
         }
     }
+
+    libusb_free_config_descriptor(config);
+
     switch (vidd) {
     case 0x0d62: // Darfon
-        version = API_V5;
-        // LOG_S(ERROR) << "Darfon detected testing needed open a issue";
-        // if (caps.Usage == 0xcc && !length) {
-        //     length = caps.FeatureReportstd::uint8_tLength;
-        // }
+        switch (to_check) {
+        case 65:
+            version = API_V5;
+            break;
+        }
         break;
     case 0x187c: // Alienware
         switch (to_check) {
@@ -268,36 +289,30 @@ bool Functions::AlienFXProbeDevice(libusb_device *device, libusb_context *ctxx,
             }
     }
 
-    if (version == API_UNKNOWN) {
+    pid = pidd;
+    vid = vidd;
+    ctx = ctxx;
+    libusb_device_descriptor desc{};
+    libusb_get_device_descriptor(device, &desc);
+    uint8_t buf[256];
+    if (libusb_open(device, &devHandle) != 0) {
         return false;
-    } else {
-        pid = pidd;
-        vid = vidd;
-        ctx = ctxx;
-        libusb_device_descriptor desc{};
-        libusb_get_device_descriptor(device, &desc);
-        uint8_t buf[256];
-        if (libusb_open(device, &devHandle) != 0) {
-            // libusb_free_config_descriptor(config);
-            return false;
-        }
+    }
 
-        if (desc.iManufacturer &&
-            libusb_get_string_descriptor_ascii(devHandle, desc.iManufacturer,
-                                               buf, sizeof(buf)) > 0) {
-            description.append(reinterpret_cast<char *>(buf));
-        }
-        description.append(" ");
-        if (desc.iProduct &&
-            libusb_get_string_descriptor_ascii(devHandle, desc.iProduct, buf,
-                                               sizeof(buf)) > 0) {
-            description.append(reinterpret_cast<char *>(buf));
-        }
+    if (desc.iManufacturer &&
+        libusb_get_string_descriptor_ascii(devHandle, desc.iManufacturer, buf,
+                                           sizeof(buf)) > 0) {
+        description.append(reinterpret_cast<char *>(buf));
+    }
+    description.append(" ");
+    if (desc.iProduct && libusb_get_string_descriptor_ascii(
+                             devHandle, desc.iProduct, buf, sizeof(buf)) > 0) {
+        description.append(reinterpret_cast<char *>(buf));
     }
 #ifdef DEBUG
     LOG_S(INFO) << "Probing device VID: 0x" << std::hex << std::setw(4)
-                << std::setfill('0') << static_cast<int>(vid) << ", PID: 0x"
-                << std::setw(4) << std::setfill('0') << static_cast<int>(pid)
+                << std::setfill('0') << static_cast<int>(vidd) << ", PID: 0x"
+                << std::setw(4) << std::setfill('0') << static_cast<int>(pidd)
                 << ", Version: " << std::dec
                 << version // switch back to decimal
                 << ", Length: " << length << ", Description: " << description
@@ -310,7 +325,8 @@ bool Functions::AlienFXProbeDevice(libusb_device *device, libusb_context *ctxx,
 
 // NOTE: Not needed? as we already initalize in probe
 //
-//   bool Functions::AlienFXInitialize(unsigned short vidd, unsigned short pidd)
+//   bool Functions::AlienFXInitialize(unsigned short vidd, unsigned short
+//   pidd)
 //   {
 //       unsigned long dwRequiredSize = 0;
 //       SP_DEVICE_INTERFACE_DATA deviceInterfaceData{
@@ -1202,14 +1218,15 @@ void Mappings::LoadMappings() {
     // groups.clear();
     // grids.clear();
     //
-    // RegCreateKeyEx(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Alienfx_SDK"), 0, NULL,
-    // REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &mainKey, NULL); unsigned
-    // vindex; char kName[255], name[255]; DWORD len, lend; int dID; WORD vid,
-    // pid; byte lID; for (vindex = 0; RegEnumValue(mainKey, vindex, kName,
-    // &(len = 255), NULL, NULL, (LPBYTE)name, &(lend = 255)) == ERROR_SUCCESS;
-    // vindex++) { 	if (sscanf_s(kName, "Dev#%hd_%hd", &vid, &pid) == 2) {
-    // 		AddDeviceById(MAKELPARAM(pid, vid))->name = string(name);
-    // 		continue;
+    // RegCreateKeyEx(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Alienfx_SDK"), 0,
+    // NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &mainKey, NULL);
+    // unsigned vindex; char kName[255], name[255]; DWORD len, lend; int
+    // dID; WORD vid, pid; byte lID; for (vindex = 0; RegEnumValue(mainKey,
+    // vindex, kName,
+    // &(len = 255), NULL, NULL, (LPBYTE)name, &(lend = 255)) ==
+    // ERROR_SUCCESS; vindex++) { 	if (sscanf_s(kName, "Dev#%hd_%hd", &vid,
+    // &pid) == 2) { 		AddDeviceById(MAKELPARAM(pid,
+    // vid))->name = string(name); 		continue;
     // 	}
     // 	if (sscanf_s(kName, "DevWhite#%hd_%hd", &vid, &pid) == 2) {
     // 		AddDeviceById(MAKELPARAM(pid, vid))->white.ci =
@@ -1226,25 +1243,26 @@ void Mappings::LoadMappings() {
     // RRF_RT_REG_SZ, 0, name,
     // &(lend = 255)); 		RegGetValue(mainKey, kName, "Flags",
     // RRF_RT_REG_DWORD, 0, &len, &(lend = sizeof(DWORD)));
-    // AddDeviceById(dID)->lights.push_back({ lID, { LOWORD(len), HIWORD(len) },
-    // name });
+    // AddDeviceById(dID)->lights.push_back({ lID, { LOWORD(len),
+    // HIWORD(len) }, name });
     // 	}
     // 	if (sscanf_s(kName, "Grid%d", &dID) == 1) {
-    // 		RegGetValue(mainKey, kName, "Name", RRF_RT_REG_SZ, 0, name,
+    // 		RegGetValue(mainKey, kName, "Name", RRF_RT_REG_SZ, 0,
+    // name,
     // &(lend = 255)); 		RegGetValue(mainKey, kName, "Size",
-    // RRF_RT_REG_DWORD, 0, &len, &(lend = sizeof(DWORD))); 		byte x =
-    // HIBYTE(len), y = LOBYTE(len); 		Afx_groupLight* grid = new
-    // Afx_groupLight[x
-    // * y]; 		RegGetValue(mainKey, kName, "Grid", RRF_RT_REG_BINARY,
-    // 0, grid,
+    // RRF_RT_REG_DWORD, 0, &len, &(lend = sizeof(DWORD)));
+    // byte x = HIBYTE(len), y = LOBYTE(len); 		Afx_groupLight*
+    // grid = new Afx_groupLight[x
+    // * y]; 		RegGetValue(mainKey, kName, "Grid",
+    // RRF_RT_REG_BINARY, 0, grid,
     // &(lend = x * y * sizeof(DWORD))); 		grids.push_back({
     // (byte)dID, x, y, name, grid });
     // 	}
     // }
     // for (vindex = 0; RegEnumKey(mainKey, vindex, kName, 255) ==
     // ERROR_SUCCESS; vindex++) { 	if (sscanf_s(kName, "Group%d", &dID) ==
-    // 1) { 		RegGetValue(mainKey, kName, "Name", RRF_RT_REG_SZ, 0,
-    // name,
+    // 1) { 		RegGetValue(mainKey, kName, "Name",
+    // RRF_RT_REG_SZ, 0, name,
     // &(lend = 255));
     // 		// -1 patch
     // 		if (dID < 0) {
@@ -1252,8 +1270,8 @@ void Mappings::LoadMappings() {
     // 		}
     // 		groups.push_back({ (DWORD)dID, name });
     // 		vector<Afx_groupLight>* gl = &groups.back().lights;
-    // 		if (RegGetValue(mainKey, kName, "LightList", RRF_RT_REG_BINARY,
-    // 0, NULL, &lend) != ERROR_FILE_NOT_FOUND) {
+    // 		if (RegGetValue(mainKey, kName, "LightList",
+    // RRF_RT_REG_BINARY, 0, NULL, &lend) != ERROR_FILE_NOT_FOUND) {
     // gl->resize(lend / sizeof(DWORD));
     // RegGetValue(mainKey, kName, "LightList", RRF_RT_REG_BINARY, 0,
     // gl->data(), &lend);
@@ -1273,26 +1291,28 @@ void Mappings::SaveMappings() {
     //
     // // Remove all maps!
     // RegDeleteTree(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Alienfx_SDK"));
-    // RegCreateKeyEx(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Alienfx_SDK"), 0, NULL,
-    // REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hKeybase, NULL);
+    // RegCreateKeyEx(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Alienfx_SDK"), 0,
+    // NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hKeybase,
+    // NULL);
     //
     // for (auto i = fxdevs.begin(); i != fxdevs.end(); i++) {
     // 	// Saving device data..
     // 	string devID = to_string(i->vid) + "_" + to_string(i->pid);
     // 	string name = "Dev#" + devID;
     // 	if (i->name.length())
-    // 		RegSetValueEx(hKeybase, name.c_str(), 0, REG_SZ, (BYTE *)
-    // i->name.c_str(), (DWORD) i->name.length() ); 	name = "DevWhite#" +
-    // devID; 	RegSetValueEx(hKeybase, name.c_str(), 0, REG_DWORD, (BYTE *)
-    // &i->white.ci, sizeof(DWORD)); 	name = "DevBright#" + devID; DWORD br =
-    // i->brightness; 	RegSetValueEx(hKeybase, name.c_str(), 0, REG_DWORD,
-    // (BYTE*)&br, sizeof(DWORD)); 	for (auto cl = i->lights.begin(); cl <
+    // 		RegSetValueEx(hKeybase, name.c_str(), 0, REG_SZ, (BYTE
+    // *) i->name.c_str(), (DWORD) i->name.length() ); 	name =
+    // "DevWhite#" + devID; 	RegSetValueEx(hKeybase, name.c_str(), 0,
+    // REG_DWORD, (BYTE *) &i->white.ci, sizeof(DWORD)); 	name =
+    // "DevBright#" + devID; DWORD br = i->brightness;
+    // RegSetValueEx(hKeybase, name.c_str(), 0, REG_DWORD, (BYTE*)&br,
+    // sizeof(DWORD)); 	for (auto cl = i->lights.begin(); cl <
     // i->lights.end(); cl++) {
     // 		// Saving all lights from current device
     // 		string name = "Light" + to_string(i->devID) + "-" +
-    // to_string(cl->lightid); 		RegCreateKey(hKeybase, name.c_str(),
-    // &hKeyStore); 		RegSetValueEx(hKeyStore, "Name", 0, REG_SZ,
-    // (BYTE*)cl->name.c_str(), (DWORD)cl->name.length());
+    // to_string(cl->lightid); 		RegCreateKey(hKeybase,
+    // name.c_str(), &hKeyStore); 		RegSetValueEx(hKeyStore, "Name",
+    // 0, REG_SZ, (BYTE*)cl->name.c_str(), (DWORD)cl->name.length());
     // 		RegSetValueEx(hKeyStore, "Flags", 0, REG_DWORD,
     // (BYTE*)&cl->data, sizeof(DWORD)); 		RegCloseKey(hKeyStore);
     // 	}
@@ -1302,20 +1322,21 @@ void Mappings::SaveMappings() {
     // 	string name = "Group" + to_string(i->gid);
     //
     // 	RegCreateKey(hKeybase, name.c_str(), &hKeyStore);
-    // 	RegSetValueEx(hKeyStore, "Name", 0, REG_SZ, (BYTE *) i->name.c_str(),
-    // (DWORD) i->name.length()); 	RegSetValueEx(hKeyStore, "LightList", 0,
-    // REG_BINARY, (BYTE*)i->lights.data(), (DWORD)i->lights.size() *
-    // sizeof(DWORD)); 	RegCloseKey(hKeyStore);
+    // 	RegSetValueEx(hKeyStore, "Name", 0, REG_SZ, (BYTE *)
+    // i->name.c_str(), (DWORD) i->name.length()); 	RegSetValueEx(hKeyStore,
+    // "LightList", 0, REG_BINARY, (BYTE*)i->lights.data(),
+    // (DWORD)i->lights.size() * sizeof(DWORD)); 	RegCloseKey(hKeyStore);
     // }
     //
     // for (auto i = grids.begin(); i != grids.end(); i++) {
     // 	string name = "Grid" + to_string(i->id);
     // 	RegCreateKey(hKeybase, name.c_str(), &hKeyStore);
-    // 	RegSetValueEx(hKeyStore, "Name", 0, REG_SZ, (BYTE*)i->name.c_str(),
-    // (DWORD)i->name.length()); 	DWORD sizes = ((DWORD)i->x << 8) | i->y;
-    // 	RegSetValueEx(hKeyStore, "Size", 0, REG_DWORD, (BYTE*)&sizes,
-    // sizeof(DWORD)); 	RegSetValueEx(hKeyStore, "Grid", 0, REG_BINARY,
-    // (BYTE*)i->grid, i->x * i->y * sizeof(DWORD)); 	RegCloseKey(hKeyStore);
+    // 	RegSetValueEx(hKeyStore, "Name", 0, REG_SZ,
+    // (BYTE*)i->name.c_str(), (DWORD)i->name.length()); 	DWORD sizes =
+    // ((DWORD)i->x << 8) | i->y; 	RegSetValueEx(hKeyStore, "Size", 0,
+    // REG_DWORD, (BYTE*)&sizes, sizeof(DWORD)); 	RegSetValueEx(hKeyStore,
+    // "Grid", 0, REG_BINARY, (BYTE*)i->grid, i->x * i->y * sizeof(DWORD));
+    // RegCloseKey(hKeyStore);
     // }
     //
     // RegCloseKey(hKeybase);

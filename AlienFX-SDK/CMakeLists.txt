@@ -3,7 +3,6 @@ project(AlienFX_SDK LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-add_compile_definitions(DEBUG)
 
 include(FetchContent)
 find_package(PkgConfig REQUIRED)

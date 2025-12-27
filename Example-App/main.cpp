@@ -22,16 +22,16 @@ int main() {
             //
             // NOTE: SET KEYBOARD ZONE COLOR - Passed
 
-            // std::vector<AlienFX_SDK::Afx_action> action_zone{};
-            // action_zone.push_back(
-            //     {AlienFX_SDK::AlienFX_A_Color, 2, 64, 0, 255, 255});
-            // std::vector<AlienFX_SDK::Afx_lightblock> lights;
-            // lights.push_back({0, action_zone});
-            // lights.push_back({1, action_zone});
-            // lights.push_back({2, action_zone});
-            // lights.push_back({3, action_zone});
-            // afx_map.fxdevs[i].dev->SetMultiAction(&lights, true);
-            // afx_map.fxdevs[i].dev->UpdateColors();
+            std::vector<AlienFX_SDK::Afx_action> action_zone{};
+            action_zone.push_back(
+                {AlienFX_SDK::AlienFX_A_Color, 2, 64, 0, 255, 255});
+            std::vector<AlienFX_SDK::Afx_lightblock> lights;
+            lights.push_back({0, action_zone});
+            lights.push_back({1, action_zone});
+            lights.push_back({2, action_zone});
+            lights.push_back({3, action_zone});
+            afx_map.fxdevs[i].dev->SetMultiAction(&lights, true);
+            afx_map.fxdevs[i].dev->UpdateColors();
 
             // NOTE: Multicolor test - Passed
             //
