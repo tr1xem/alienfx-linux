@@ -93,10 +93,10 @@ const uint8_t COMMV5_setEffect[]{8,    0x80, 0x02, 0x07, 0x00,
 // const uint8_t systemStatus[3]{0x93,0x37,0x0e};
 //[3] - some command, can be 06 and 0e
 // reply: 94 37 (command) XX.....XX - status
-const uint8_t COMMV6_systemReset[]{4, 0x95, 0, 0, 0};
+const uint8_t COMMV6_systemReset[]{5, 0xcc, 0x95, 0, 0, 0};
 // const uint8_t colorReset[11]{
 // 0x92,0x37,0x07,0x00,0x51,0x84,0xd0,0x03,0x64,0x55,0x59 };
-const uint8_t COMMV6_colorSet[]{2, 0x92, 0x37};
+const uint8_t COMMV6_colorSet[]{3, 0xcc, 0x92, 0x37};
 //[3] - command length (a - color, b - pulse, f - morph, 7 - timing),
 //[6] - command (87 - color, 88 - Pulse, 8c - morph/breath, 84 - timing?),
 //[8] - command type - 4 - color, 1 - morph, 2 - pulse, 3 - timing?

@@ -24,7 +24,7 @@ int main() {
 
             std::vector<AlienFX_SDK::Afx_action> action_zone{};
             action_zone.push_back(
-                {AlienFX_SDK::AlienFX_A_Color, 2, 64, 0, 255, 255});
+                {AlienFX_SDK::AlienFX_A_Color, 2, 64, 255, 255, 255});
             std::vector<AlienFX_SDK::Afx_lightblock> lights;
             lights.push_back({0, action_zone});
             lights.push_back({1, action_zone});
