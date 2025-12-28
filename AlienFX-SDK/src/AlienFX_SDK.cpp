@@ -288,7 +288,7 @@ bool Functions::AlienFXProbeDevice(libusb_context *ctxx, unsigned short vidd,
 
 bool Functions::Reset() {
 #ifdef DEBUG
-    LOG_S(INFO) << "Resetting device " << std::hex << vid << ":" << pid;
+    LOG_S(INFO) << "Resetting device 0x" << std::hex << pid << ": 0x" << vid;
 #endif
     switch (version) {
     // case API_V9:
@@ -335,7 +335,7 @@ bool Functions::UpdateColors() {
         //	GetDeviceStatus();
         //	break;
         case API_V5: {
-            inSet = !PrepareAndSend(COMMV5_update);
+            inSet = !PrepareAndSend(COMMV5_update, {{4, {0x0, 0xff}}});
         } break;
         case API_V4: {
             inSet = !PrepareAndSend(COMMV4_control);
@@ -371,7 +371,9 @@ void Functions::AddV8DataBlock(uint8_t bPos, vector<Afx_icommand> *mods,
 
 void Functions::AddV5DataBlock(uint8_t bPos, vector<Afx_icommand> *mods,
                                uint8_t index, Afx_action *c) {
-    mods->push_back({bPos, {(uint8_t)(index + 1), c->r, c->g, c->b}});
+    // mods->push_back({bPos, {(uint8_t)(index + 1), c->r, c->g, c->b}});
+    // FIXME: Index + 1 makes 0 index light to be ignored
+    mods->push_back({bPos, {(uint8_t)(index + 0), c->r, c->g, c->b}});
 }
 
 bool Functions::SetMultiColor(vector<uint8_t> *lights, Afx_action c) {
@@ -1048,6 +1050,12 @@ bool Mappings::AlienFXEnumDevices(void *acc) {
         dev = new Functions();
         // NOTE: Deduplicate devices with same path
         if (seen_paths.count(cur_dev->path)) {
+            // #ifdef DEBUG
+            // LOG_S(INFO) << "Skipping duplicate device - VID: 0x" << std::hex
+            //             << cur_dev->vendor_id << ", PID: 0x"
+            //             << cur_dev->product_id << ", Path: " <<
+            //             cur_dev->path;
+            // #endif
             cur_dev = cur_dev->next;
             continue;
         }
