@@ -1,11 +1,10 @@
 # AlienFX-linux
 
-Ported version of [AlienFX](https://github.com/T-Troll/alienfx-tools?tab=readme-ov-file) for Linux, which gives
+Ported version of [AlienFX](https://github.com/T-Troll/alienfx-tools) for Linux, which gives
 complete light support for most of the device dell produce.
 
-Check out `Example-App` for a sample application.
-
-As for now V4 is tested by me.
+Check out `Example-App/` for a sample application.
+ALl testing applications are located in `alienfx-cli/` folder.
 
 ## AlienFX-SDK
 
@@ -18,12 +17,13 @@ Better AlienFX/LightFX SDK than Dell official's one without any limitations:
 
 ### Supported devices:
 
-Any Alienware/Dell G-series hardware with RGB lights from 2010 to 2022. Including mouses, keyboards, monitors.
+Any Alienware/Dell G-series hardware with RGB lights from 2010 to 2025. Including mouses, keyboards, monitors.
 Read more details about supported devices and models [here](https://github.com/T-Troll/alienfx-tools/wiki/Supported-and-tested-devices-list)
 
 ### Supported device API versions:
 
-- ACPI-controlled lights - 3 lights, 8 bit/color (v0) - Aurora R6/R7 (using this API require AlienFan-SDK library from [AlienFX-Tools](https://github.com/T-Troll/alienfx-tools) project).
+~~- ACPI-controlled lights - 3 lights, 8 bit/color (v0) - Aurora R6/R7 (using this API require AlienFan-SDK library from [AlienFX-Tools](https://github.com/T-Troll/alienfx-tools) project).~~ Not Planned
+
 - 9 bytes 8 bit/color, reportID 2 control (v1) - Ancient notebooks - deprecated and removed.
 - 9 bytes 4 bit/color, reportID 2 control (v2) - Older notebooks (like m14/17x, 13R1/R2)
 - 12 bytes 8 bit/color, reportID 2 control (v3) - Old notebooks (like 15R5)
@@ -52,6 +52,22 @@ Some notebooks can have 2 devices - APIv4 (for logo, power button, etc) and APIv
 ## Dependencies
 
 - Libusb
+- Hidapi
+
+## Build
+
+```bash
+mkdir build/
+cd build/
+cmake ..
+make
+```
+
+It would build 3 executables:
+
+- `AlienFX-SDK` - static library with AlienFX SDK
+- `Example-App` - sample application
+- `alienfx-cli` - command line tool for testing and configuring lights
 
 ## Docs
 
