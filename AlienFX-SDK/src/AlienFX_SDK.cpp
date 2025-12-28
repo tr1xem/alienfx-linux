@@ -95,12 +95,15 @@ bool Functions::PrepareAndSend(const uint8_t *command,
     }
 
 #ifdef DEBUG
-    LOG_S(INFO) << "Sending hid packet (" << length << " std::uint8_ts): ";
-    for (int i = 0; i < length; i++) {
-        std::cout << std::hex << setw(2) << setfill('0')
-                  << static_cast<unsigned>(buffer[i]) << ' ';
+    std::ostringstream oss;
+    oss << "Sending hid packet (" << length << " bytes): ";
+
+    for (int i = 0; i < length; ++i) {
+        oss << std::hex << std::setw(2) << std::setfill('0')
+            << static_cast<unsigned>(buffer[i]) << ' ';
     }
-    std::cout << std::dec << std::endl;
+    LOG_S(INFO) << oss.str();
+
 #endif
     if (!devHandle) {
         LOG_S(ERROR) << "HID device not open";

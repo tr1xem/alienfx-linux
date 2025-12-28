@@ -1,4 +1,5 @@
 #include "const.h"
+#include "loguru.hpp"
 #include <iostream>
 #include <stdio.h>
 
@@ -41,8 +42,9 @@ int CheckCommand(string name, int args) {
     for (int i = 0; i < ARRAYSIZE(commands); i++) {
         if (name == commands[i].name) {
             if (commands[i].minArgs > args) {
-                printf("%s: Incorrect arguments count (at least %d needed)\n",
-                       commands[i].name, commands[i].minArgs);
+                LOG_F(ERROR,
+                      "%s: Incorrect arguments count (at least %d needed)",
+                      commands[i].name, commands[i].minArgs);
                 return -1;
             } else
                 return commands[i].id;
@@ -92,7 +94,7 @@ vector<AlienFX_SDK::Afx_action> ParseActions(vector<ARG> *args, int startPos) {
 }
 
 int main(int argc, char *argv[]) {
-    printf("alienfx-cli v%s\n", VERSION);
+    LOG_F(INFO, "alienfx-cli v%s", VERSION);
     if (argc < 2) {
         printUsage();
         return 0;
@@ -101,13 +103,13 @@ int main(int argc, char *argv[]) {
     afx_map.LoadMappings();
     afx_map.AlienFXEnumDevices();
 
-    // printf("Dell API ");
+    // LOG_F(INFO,"Dell API ");
     // if (have_high = (lfxUtil.InitLFX() == -1)) {
-    //     printf("ready");
+    //     LOG_F(INFO,"ready");
     //     devType = 0;
     // }
     // else
-    // printf("not found");
+    // LOG_F(INFO,"not found");
 
     if (afx_map.activeDevices) {
         devType = 1;
@@ -118,7 +120,7 @@ int main(int argc, char *argv[]) {
             }
         }
     }
-    printf("%d low-level devices found.\n", afx_map.activeDevices);
+    LOG_F(INFO, "%d low-level devices found.", afx_map.activeDevices);
 
     if (devType >= 0) {
         for (int cc = 1; cc < argc; cc++) {
@@ -291,7 +293,7 @@ int main(int argc, char *argv[]) {
                 // low-level
                 if (afx_map.fxdevs.size()) {
                     devType = 1;
-                    printf("USB Device selected\n");
+                    LOG_F(INFO, "USB Device selected");
                 }
                 break;
             }
@@ -300,7 +302,7 @@ int main(int argc, char *argv[]) {
                 //     // high-level
                 //     if (have_high) {
                 //         devType = 0;
-                //         printf("Dell API selected\n");
+                //         LOG_F(INFO,"Dell API selected\n");
                 //     }
                 //     break;
 
@@ -309,32 +311,34 @@ int main(int argc, char *argv[]) {
                 // if (devType) {
                 for (auto i = afx_map.fxdevs.begin(); i < afx_map.fxdevs.end();
                      i++) {
-                    printf("Device #%d - %s, VID#%d, PID#%d, APIv%d, %d "
-                           "lights%s\n",
-                           (int)(i - afx_map.fxdevs.begin()), i->name.c_str(),
-                           i->vid, i->pid, i->version, (int)i->lights.size(),
-                           i->present ? "" : " (inactive)");
+                    LOG_F(INFO,
+                          "Device #%d - %s, VID#%d, PID#%d, APIv%d, %d "
+                          "lights%s\n",
+                          (int)(i - afx_map.fxdevs.begin()), i->name.c_str(),
+                          i->vid, i->pid, i->version, (int)i->lights.size(),
+                          i->present ? "" : " (inactive)");
 
                     for (int k = 0; k < i->lights.size(); k++) {
-                        printf("  Light ID#%d - %s%s%s\n", i->lights[k].lightid,
-                               i->lights[k].name.c_str(),
-                               (i->lights[k].flags & ALIENFX_FLAG_POWER)
-                                   ? " (Power button)"
-                                   : "",
-                               (i->lights[k].flags & ALIENFX_FLAG_INDICATOR)
-                                   ? " (Indicator)"
-                                   : "");
+                        LOG_F(INFO, "  Light ID#%d - %s%s%s\n",
+                              i->lights[k].lightid, i->lights[k].name.c_str(),
+                              (i->lights[k].flags & ALIENFX_FLAG_POWER)
+                                  ? " (Power button)"
+                                  : "",
+                              (i->lights[k].flags & ALIENFX_FLAG_INDICATOR)
+                                  ? " (Indicator)"
+                                  : "");
                     }
                 }
                 // }
                 // now groups...
                 if (afx_map.GetGroups()->size()) {
-                    printf("%d zones:\n", (int)afx_map.GetGroups()->size());
+                    LOG_F(INFO, "%d zones:\n",
+                          (int)afx_map.GetGroups()->size());
                     for (int i = 0; i < afx_map.GetGroups()->size(); i++) {
-                        printf("  Zone #%d (%d lights) - %s\n",
-                               (afx_map.GetGroups()->at(i).gid & 0xffff),
-                               (int)afx_map.GetGroups()->at(i).lights.size(),
-                               afx_map.GetGroups()->at(i).name.c_str());
+                        LOG_F(INFO, "  Zone #%d (%d lights) - %s",
+                              (afx_map.GetGroups()->at(i).gid & 0xffff),
+                              (int)afx_map.GetGroups()->at(i).lights.size(),
+                              afx_map.GetGroups()->at(i).name.c_str());
                     }
                 }
                 // } else {
@@ -382,7 +386,7 @@ int main(int argc, char *argv[]) {
                     //        at this ID to skip it.\n");
 
                     if (afx_map.fxdevs.size() > 0) {
-                        printf("Found %d device(s)\n",
+                        printf("Found %d device(s)",
                                (int)afx_map.fxdevs.size());
                         // if (have_high) {
                         //     lfxUtil.FillInfo();
@@ -446,7 +450,7 @@ int main(int argc, char *argv[]) {
                                         // afx_map.SaveMappings();
                                         // printf("New name is %s, ", name);
                                     } else {
-                                        printf("Skipped, ");
+                                        LOG_F(INFO, "Skipped, ");
                                     }
 
                                     lon.act.front().g = 0;
@@ -470,14 +474,14 @@ int main(int argc, char *argv[]) {
             }
 
             case -2: {
-                printf("Unknown command %s\n", command.c_str());
+                LOG_F(ERROR, "Unknown command %s", command.c_str());
                 break;
             }
             }
         }
-        printf("Done.\n");
+        LOG_F(INFO, "Done.");
     } else {
-        printf("Light devices not found, exiting!\n");
+        LOG_F(ERROR, "Light devices not found, exiting!");
     }
 
     // if (have_high)
