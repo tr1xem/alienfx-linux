@@ -1,4 +1,6 @@
 #pragma once
+#include "hidapi.h"
+#include <hidapi/hidapi_libusb.h>
 #include <libusb-1.0/libusb.h>
 #include <string>
 #include <vector>
@@ -131,14 +133,13 @@ enum Action {
 
 class Functions {
   private:
-    libusb_device_handle *devHandle = nullptr; // USB device handle, NULL if not
-    libusb_context *ctx = nullptr;             // USB context
-    void *ACPIdevice = nullptr;                // ACPI device object pointer
-    uint8_t out_ep = 0, in_ep = 0;             // USB endpoints
+    hid_device *devHandle = nullptr; // USB device handle, NULL if not
+    // libusb_context *ctx = nullptr;             // USB context
+    void *ACPIdevice = nullptr; // ACPI device object pointer
+    // uint8_t out_ep = 0, in_ep = 0; // USB endpoints
 
     bool inSet = false;
 
-    int interface = 0;
     int length = -1;   // HID report length
     uint8_t chain = 1; // seq. number for APIv1-v3
 
@@ -189,7 +190,7 @@ class Functions {
     uint8_t bright = 64;       // Last brightness set for device
     string description;        // device description
 
-    Functions(libusb_context *ctxx) : ctx(ctxx) {};
+    // Functions(libusb_context *ctxx) : ctx(ctxx) {};
     ~Functions();
 
     // Initialize device
@@ -202,8 +203,8 @@ class Functions {
     // Check device and initialize data
     // vid/pid the same as above
     // Returns true if device found and initialized.
-    bool AlienFXProbeDevice(libusb_device *device, libusb_context *ctxx,
-                            unsigned short vidd = 0, unsigned short pidd = 0);
+    bool AlienFXProbeDevice(libusb_context *ctxx, unsigned short vidd = 0,
+                            unsigned short pidd = 0);
 
     // Prepare to set lights
     bool Reset();
