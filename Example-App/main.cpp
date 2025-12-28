@@ -12,6 +12,7 @@ int main() {
         LOG_S(INFO) << "Stored device " << it->name << ", " << it->lights.size()
                     << " lights";
     LOG_S(INFO) << afx_map.fxdevs.size() << " device(s) detected.";
+
     // And try to set it lights...
     for (int i = 0; i < afx_map.fxdevs.size(); i++) {
         LOG_S(INFO) << hex << "VID: 0x" << afx_map.fxdevs[i].vid << ", PID: 0x"
@@ -22,16 +23,35 @@ int main() {
             //
             // NOTE: SET KEYBOARD ZONE COLOR - Passed
 
-            std::vector<AlienFX_SDK::Afx_action> action_zone{};
-            action_zone.push_back(
-                {AlienFX_SDK::AlienFX_A_Color, 2, 64, 255, 255, 255});
-            std::vector<AlienFX_SDK::Afx_lightblock> lights;
-            lights.push_back({0, action_zone});
-            lights.push_back({1, action_zone});
-            lights.push_back({2, action_zone});
-            lights.push_back({3, action_zone});
-            afx_map.fxdevs[i].dev->SetMultiAction(&lights, true);
-            afx_map.fxdevs[i].dev->UpdateColors();
+            if (afx_map.fxdevs[i].vid == 0x187c) {
+                std::vector<AlienFX_SDK::Afx_action> action_zone{};
+                action_zone.push_back(
+                    {AlienFX_SDK::AlienFX_A_Color, 2, 64, 0, 255, 255});
+                std::vector<AlienFX_SDK::Afx_lightblock> lights;
+                lights.push_back({0, action_zone});
+                lights.push_back({1, action_zone});
+                lights.push_back({2, action_zone});
+                lights.push_back({3, action_zone});
+                afx_map.fxdevs[i].dev->SetMultiAction(&lights, true);
+                afx_map.fxdevs[i].dev->UpdateColors();
+                LOG_S(WARNING)
+                    << "Alienware device are now Cyan" << i << "... ";
+            }
+            if (afx_map.fxdevs[i].vid == 0x0d62) {
+                std::vector<AlienFX_SDK::Afx_action> action_zone;
+                action_zone.push_back(
+                    {AlienFX_SDK::AlienFX_A_Morph, 2, 64, 0, 255, 255});
+
+                std::vector<AlienFX_SDK::Afx_lightblock> lights;
+
+                for (uint8_t idx = 0; idx <= 100; ++idx) {
+                    lights.push_back({idx, action_zone});
+                }
+
+                afx_map.fxdevs[i].dev->SetMultiAction(&lights, true);
+                afx_map.fxdevs[i].dev->UpdateColors();
+                LOG_S(WARNING) << "Darfon device are now Cyan" << i << "... ";
+            }
 
             // NOTE: Multicolor test - Passed
             //

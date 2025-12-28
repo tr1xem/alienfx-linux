@@ -182,6 +182,7 @@ class Functions {
     union {
         struct {
             unsigned short pid, vid; // Device IDs
+            char *path;              // Device path
         };
         unsigned long devID;
     };
@@ -204,7 +205,7 @@ class Functions {
     // vid/pid the same as above
     // Returns true if device found and initialized.
     bool AlienFXProbeDevice(libusb_context *ctxx, unsigned short vidd = 0,
-                            unsigned short pidd = 0);
+                            unsigned short pidd = 0, char *pathh = 0);
 
     // Prepare to set lights
     bool Reset();
