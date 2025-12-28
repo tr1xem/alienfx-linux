@@ -197,7 +197,6 @@ void Functions::SavePowerBlock(uint8_t blID, Afx_lightblock *act, bool needSave,
 bool Functions::AlienFXProbeDevice(libusb_device *device, libusb_context *ctxx,
                                    unsigned short vidd, unsigned short pidd) {
     version = API_UNKNOWN;
-    int to_check{};
     libusb_config_descriptor *config = nullptr;
     int result = libusb_get_config_descriptor(device, 0, &config);
     if (result != 0) {
@@ -242,13 +241,22 @@ bool Functions::AlienFXProbeDevice(libusb_device *device, libusb_context *ctxx,
                 // Store IN/OUT endpoint
                 if ((e.bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK) ==
                     LIBUSB_ENDPOINT_OUT) {
-                    length = e.wMaxPacketSize & 0x07FF;
                     out_ep = e.bEndpointAddress;
                 } else {
-                    length = e.wMaxPacketSize & 0x07FF;
                     in_ep = e.bEndpointAddress;
                 }
-                to_check = length + 1;
+
+                // NOTE: Check the max packet size for IN endpoint
+                if ((e.bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK) ==
+                    LIBUSB_ENDPOINT_IN) {
+                    length = e.wMaxPacketSize & 0x07FF;
+                    /*
+                    LOG_S(INFO) << "VID: 0x" << std::hex << vidd << " PID: 0x"
+                                << std::hex << (int)pidd
+                                << " IN EP: " << std::hex << (int)in_ep
+                                << ", Length: " << std::dec << (int)length;
+                    */
+                }
             }
         }
     }
@@ -257,14 +265,14 @@ bool Functions::AlienFXProbeDevice(libusb_device *device, libusb_context *ctxx,
 
     switch (vidd) {
     case 0x0d62: // Darfon
-        switch (to_check) {
+        switch (length + 1) {
         case 65:
             version = API_V5;
             break;
         }
         break;
     case 0x187c: // Alienware
-        switch (to_check) {
+        switch (length + 1) {
         case 9:
             version = API_V2;
             break;
@@ -282,7 +290,7 @@ bool Functions::AlienFXProbeDevice(libusb_device *device, libusb_context *ctxx,
         }
         break;
     default:
-        if (to_check == 65)
+        if (length + 1 == 65)
             switch (vidd) {
             case 0x0424: // Microchip
                 if (pidd != 0x274c)
