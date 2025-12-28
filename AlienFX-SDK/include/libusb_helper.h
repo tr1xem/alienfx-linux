@@ -1,19 +1,28 @@
 #pragma once
 #include <cstddef>
 #include <cstdint>
+#include <hidapi/hidapi_libusb.h>
 #include <libusb.h>
 
-bool HidD_SetFeature(libusb_device_handle *dev, uint8_t *buffer, size_t length,
-                     uint8_t iface = 0);
-int HidD_SetOutputReport(libusb_device_handle *dev, uint8_t *buffer,
-                         size_t length, uint8_t iface = 0);
+//[Linux Compatibility] Gets the maximum packet size for IN endpoint for the
+// device
+int GetMaxPacketSize(libusb_context *ctxx, unsigned short vidd,
+                     unsigned short pidd);
 
-bool WriteFile(libusb_device_handle *dev, uint8_t *buffer, size_t length,
-               int &transferred, uint8_t out_ep);
-bool ReadFile(libusb_device_handle *dev, uint8_t *buffer, size_t length,
-              int &transferred, uint8_t in_ep);
+// Override for hid_send_output_report
+bool HidD_SetFeature(hid_device *dev, uint8_t *buffer, size_t length);
 
-int HidD_GetFeature(libusb_device_handle *dev, uint8_t *buffer, size_t length,
-                    uint8_t iface = 0);
-int HidD_GetInputReport(libusb_device_handle *dev, uint8_t *buffer,
-                        size_t length, uint8_t in_ep, uint8_t iface = 0);
+// Override for hid_send_output_report
+int HidD_SetOutputReport(hid_device *dev, uint8_t *buffer, size_t length);
+
+// Override for hid_write
+bool WriteFile(hid_device *dev, uint8_t *buffer, size_t length);
+
+// Override for hid_read
+bool ReadFile(hid_device *dev, uint8_t *buffer, size_t length);
+
+// Override for hid_get_feature_report
+int HidD_GetFeature(hid_device *dev, uint8_t *buffer, size_t length);
+
+// Override for hid_get_input_report
+int HidD_GetInputReport(hid_device *dev, uint8_t *buffer, size_t length);

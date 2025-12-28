@@ -1,200 +1,131 @@
+#include "hidapi.h"
 #include <cstdint>
-#include <iomanip>
-#include <iostream>
+#include <hidapi/hidapi_libusb.h>
 #include <libusb.h>
 #include <loguru.hpp>
 
-#define HID_SET_REPORT 0x09
-#define HID_GET_REPORT 0x01
-#define HID_REPORT_TYPE_FEATURE 0x03
-#define HID_REPORT_TYPE_OUTPUT 0x02
+int GetMaxPacketSize(libusb_context *ctxx, unsigned short vidd,
+                     unsigned short pidd) {
 
-using std::setfill;
-using std::setw;
-
-void LOG_BUFFER(uint8_t *buffer, size_t length) {
-    LOG_S(INFO) << "Sending USB packet (" << length << " std::uint8_ts): ";
-    for (int i = 0; i < length; i++) {
-        std::cout << std::hex << setw(2) << setfill('0')
-                  << static_cast<unsigned>(buffer[i]) << ' ';
+    int maxPacketSize = -1;
+    libusb_device **devs;
+    ssize_t cnt = libusb_get_device_list(ctxx, &devs);
+    if (cnt < 0) {
+        LOG_S(ERROR) << "Failed to get device list";
+        libusb_exit(ctxx);
+        return 1;
     }
-    std::cout << std::dec << std::endl;
-}
-
-bool HidD_SetFeature(libusb_device_handle *dev, uint8_t *buffer, size_t length,
-                     uint8_t iface = 0) {
-    if (!dev || !buffer || length == 0)
-        return false;
-    uint8_t report_id = buffer[0];
-    int skipped_report_id = 0;
-    if (report_id == 0x0) {
-        buffer++;
-        length--;
-        skipped_report_id = 1;
+    libusb_device *libusbdevice = nullptr;
+    for (ssize_t i = 0; i < cnt; i++) {
+        libusb_device_descriptor desc;
+        if (libusb_get_device_descriptor(devs[i], &desc) == 0) {
+            if (desc.idVendor == vidd && desc.idProduct == pidd) {
+                libusbdevice = devs[i];
+                break;
+            }
+        }
     }
-#ifdef DEBUG
-    LOG_BUFFER(buffer, length);
-#endif
-    int rc = libusb_control_transfer(
-        dev,
-        LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_INTERFACE |
-            LIBUSB_ENDPOINT_OUT,
-        HID_SET_REPORT, (HID_REPORT_TYPE_FEATURE << 8) | report_id, iface,
-        buffer, length, 1000);
-    if (rc < 0)
+    int result{};
+    libusb_config_descriptor *config = nullptr;
+    libusb_device_handle *handle = nullptr;
+    if (!libusbdevice) {
+        libusb_free_device_list(devs, 1);
         return false;
-
-    if (skipped_report_id)
-        length++;
-
-    return length;
-    // return rc == (int)length;
-}
-
-int HidD_SetOutputReport(libusb_device_handle *dev, uint8_t *buffer,
-                         size_t length, uint8_t iface = 0) {
-    if (!dev || !buffer || length == 0)
-        return false;
-    uint8_t report_id = buffer[0];
-    int skipped_report_id = 0;
-    if (report_id == 0x0) {
-        buffer++;
-        length--;
-        skipped_report_id = 1;
     }
+    if (libusbdevice) {
+        result = libusb_get_config_descriptor(libusbdevice, 0, &config);
+        if (result != 0) {
+            return false;
+        }
+        for (int ifc = 0; ifc < config->bNumInterfaces; ifc++) {
+            const libusb_interface &iface = config->interface[ifc];
+            for (int alt = 0; alt < iface.num_altsetting; alt++) {
+                const libusb_interface_descriptor &altset =
+                    iface.altsetting[alt];
 
-#ifdef DEBUG
-    LOG_BUFFER(buffer, length);
-#endif
+                // printf("\nInterface %d, Alt %d:\n", ifc, alt);
+                // printf("  bInterfaceNumber    %u\n",
+                // altset.bInterfaceNumber); printf("  baltseternateSetting
+                // %u\n", altset.bAlternateSetting); printf("  bNumEndpoints
+                // %u\n", altset.bNumEndpoints); printf("  bInterfaceClass
+                // 0x%02x\n", altset.bInterfaceClass); printf("
+                // bInterfaceSubClass  0x%02x\n", altset.bInterfaceSubClass);
+                // printf("  bInterfaceProtocol 0x%02x\n",
+                //        altset.bInterfaceProtocol);
+                // printf("  iInterface  %u\n", altset.iInterface);
 
-    int rc = libusb_control_transfer(
-        dev,
-        LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_INTERFACE |
-            LIBUSB_ENDPOINT_OUT,
-        HID_SET_REPORT, (HID_REPORT_TYPE_OUTPUT << 8) | report_id, iface,
-        buffer, length, 1000);
+                if (altset.bInterfaceClass != LIBUSB_CLASS_HID)
+                    return false;
 
-    if (rc < 0)
-        return false;
+                for (int ep = 0; ep < altset.bNumEndpoints; ep++) {
+                    const libusb_endpoint_descriptor &e = altset.endpoint[ep];
 
-    if (skipped_report_id)
-        length++;
+                    // printf("    Endpoint %d:\n", ep);
+                    // printf(
+                    //     "      bEndpointAddress 0x%02x (%s)\n",
+                    //     e.bEndpointAddress, (e.bEndpointAddress &
+                    //     LIBUSB_ENDPOINT_IN) ? "IN" : "OUT");
+                    // printf("      bmAttributes     0x%02x\n",
+                    // e.bmAttributes); printf("      wMaxPacketSize   %u\n",
+                    //        e.wMaxPacketSize & 0x07FF);
+                    // printf("      bInterval        %u\n", e.bInterval);
+                    // if ((e.bmAttributes & LIBUSB_TRANSFER_TYPE_MASK) !=
+                    //     LIBUSB_TRANSFER_TYPE_INTERRUPT)
+                    //     continue;
 
-    return length;
-    // return rc == (int)length;
-}
+                    // Store IN/OUT endpoint
+                    // if ((e.bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK) ==
+                    //     LIBUSB_ENDPOINT_OUT) {
+                    //     // out_ep = e.bEndpointAddress;
+                    // } else {
+                    //     // in_ep = e.bEndpointAddress;
+                    // }
 
-bool WriteFile(libusb_device_handle *dev, uint8_t *buffer, size_t length,
-               int &transferred, uint8_t out_ep) {
-    if (!dev || !buffer)
-        return false;
-    int report_number;
-    int skipped_report_id = 0;
-
-    if (out_ep <= 0) {
-        /* No interrupt out endpoint. Use the Control Endpoint */
-        return HidD_SetOutputReport(dev, buffer, length);
-    }
-    if (!buffer || (length == 0)) {
+                    // NOTE: Check the max packet size for IN endpoint
+                    if ((e.bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK) ==
+                        LIBUSB_ENDPOINT_IN) {
+                        // NOTE: size+1 for report ID
+                        maxPacketSize = (e.wMaxPacketSize & 0x07FF) + 1;
+                        /*
+                        LOG_S(INFO) << "VID: 0x" << std::hex << vidd << " PID:
+                        0x"
+                                    << std::hex << (int)pidd
+                                    << " IN EP: " << std::hex << (int)in_ep
+                                    << ", Length: " << std::dec << (int)length;
+                        */
+                    }
+                }
+            }
+        }
+        libusb_free_config_descriptor(config);
+        libusb_free_device_list(devs, 1);
+    } else {
+        LOG_S(ERROR) << "Device not found";
         return -1;
     }
-    report_number = buffer[0];
 
-    if (report_number == 0x0) {
-        buffer++;
-        length--;
-        skipped_report_id = 1;
-    }
-#ifdef DEBUG
-    LOG_BUFFER(buffer, length);
-#endif
-
-    int rc = libusb_interrupt_transfer(dev, out_ep, buffer, length,
-                                       &transferred, 1000);
-    if (rc < 0)
-        return -1;
-    if (skipped_report_id)
-        transferred++;
-
-    return transferred;
-    // return rc == 0;
+    return maxPacketSize;
 }
 
-bool ReadFile(libusb_device_handle *dev, uint8_t *buffer, size_t length,
-              int &transferred, uint8_t in_ep) {
-    if (!dev || !buffer)
-        return false;
-#ifdef DEBUG
-    LOG_BUFFER(buffer, length);
-#endif
-    int rc = libusb_interrupt_transfer(dev, in_ep, buffer, length, &transferred,
-                                       1000);
-    return rc == 0 && transferred > 0;
+bool HidD_SetOutputReport(hid_device *dev, uint8_t *buffer, size_t length) {
+    return hid_send_output_report(dev, buffer, length);
 }
 
-int HidD_GetFeature(libusb_device_handle *dev, uint8_t *buffer, size_t length,
-                    uint8_t iface = 0) {
-    if (!dev || !buffer || length == 0)
-        return -1;
-    uint8_t report_id = buffer[0];
-    int skipped_report_id = 0;
-
-    if (report_id == 0x0) {
-        /* Offset the return buffer by 1, so that the report ID
-           will remain in byte 0. */
-        buffer++;
-        length--;
-        skipped_report_id = 1;
-    }
-
-#ifdef DEBUG
-    LOG_BUFFER(buffer, length);
-#endif
-
-    int rc = libusb_control_transfer(
-        dev,
-        LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_INTERFACE |
-            LIBUSB_ENDPOINT_IN,
-        HID_GET_REPORT, (HID_REPORT_TYPE_FEATURE << 8) | report_id, iface,
-        buffer, length, 1000);
-    if (rc < 0) {
-        LOG_S(ERROR) << "Error in getting feature report: " << rc;
-        return rc;
-    }
-    if (rc < 0)
-        return -1;
-    if (skipped_report_id)
-        rc++;
-    return rc; // number of bytes read
+bool HidD_SetFeature(hid_device *dev, uint8_t *buffer, size_t length) {
+    return hid_send_feature_report(dev, buffer, length);
 }
 
-int HidD_GetInputReport(libusb_device_handle *dev, uint8_t *buffer,
-                        size_t length, uint8_t in_ep, uint8_t iface = 0) {
-    if (!dev || !buffer || length == 0)
-        return -1;
-    int transferred = 0;
-    int skipped_report_id = 0;
-    int report_number = buffer[0];
-    if (report_number == 0x0) {
-        /* Offset the return buffer by 1, so that the report ID
-           will remain in byte 0. */
-        buffer++;
-        length--;
-        skipped_report_id = 1;
-    }
-#ifdef DEBUG
-    LOG_BUFFER(buffer, length);
-#endif
-    int rc = libusb_control_transfer(
-        dev,
-        LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_INTERFACE |
-            LIBUSB_ENDPOINT_IN,
-        HID_GET_REPORT, (1 /*HID Input*/ << 8) | report_number, iface,
-        (unsigned char *)buffer, length, 1000 /*timeout millis*/);
-    if (rc < 0)
-        return -1;
-    if (skipped_report_id)
-        rc++;
-    return rc;
-    // return transferred; // number of bytes read
+bool WriteFile(hid_device *dev, uint8_t *buffer, size_t length) {
+    return hid_write(dev, buffer, length);
+}
+
+bool ReadFile(hid_device *dev, uint8_t *buffer, size_t length) {
+    return hid_read(dev, buffer, length);
+}
+int HidD_GetFeature(hid_device *dev, uint8_t *buffer, size_t length) {
+    return hid_get_feature_report(dev, buffer, length);
+}
+
+int HidD_GetInputReport(hid_device *dev, uint8_t *buffer, size_t length) {
+    return hid_get_input_report(dev, buffer, length);
 }
