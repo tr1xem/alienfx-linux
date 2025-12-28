@@ -22,93 +22,93 @@ int main() {
             //
             // NOTE: SET KEYBOARD ZONE COLOR - Passed
 
-            // std::vector<AlienFX_SDK::Afx_action> action_zone{};
-            // action_zone.push_back(
-            //     {AlienFX_SDK::AlienFX_A_Color, 2, 64, 255, 255, 255});
-            // std::vector<AlienFX_SDK::Afx_lightblock> lights;
-            // lights.push_back({0, action_zone});
-            // lights.push_back({1, action_zone});
-            // lights.push_back({2, action_zone});
-            // lights.push_back({3, action_zone});
-            // afx_map.fxdevs[i].dev->SetMultiAction(&lights, true);
-            // afx_map.fxdevs[i].dev->UpdateColors();
+            std::vector<AlienFX_SDK::Afx_action> action_zone{};
+            action_zone.push_back(
+                {AlienFX_SDK::AlienFX_A_Color, 2, 64, 255, 255, 255});
+            std::vector<AlienFX_SDK::Afx_lightblock> lights;
+            lights.push_back({0, action_zone});
+            lights.push_back({1, action_zone});
+            lights.push_back({2, action_zone});
+            lights.push_back({3, action_zone});
+            afx_map.fxdevs[i].dev->SetMultiAction(&lights, true);
+            afx_map.fxdevs[i].dev->UpdateColors();
 
             // NOTE: Multicolor test - Passed
             //
-            std::vector<AlienFX_SDK::Afx_action> action_zone1{};
-
-            action_zone1.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 255, 255, 255});
-            action_zone1.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 0, 255, 255});
-            action_zone1.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 0, 0, 255});
-            action_zone1.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 255, 0, 255});
-            action_zone1.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 255, 0, 0});
-            action_zone1.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 255, 255, 0});
-            action_zone1.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 0, 255, 0});
-
-            std::vector<AlienFX_SDK::Afx_action> action_zone2{};
-            action_zone2.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 100, 255, 100});
-            action_zone2.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 0, 255, 190});
-            action_zone2.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 0, 160, 255});
-            action_zone2.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 120, 0, 255});
-            action_zone2.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 255, 100, 0});
-            action_zone2.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 255, 200, 0});
-            action_zone2.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 0, 255, 100});
-
-            std::vector<AlienFX_SDK::Afx_action> action_zone3;
-
-            action_zone3.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 255, 128, 128});
-            action_zone3.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 128, 255, 128});
-            action_zone3.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 128, 128, 255});
-            action_zone3.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 255, 0, 128});
-            action_zone3.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 0, 255, 128});
-            action_zone3.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 128, 255, 0});
-            action_zone3.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 0, 128, 255});
-
-            std::vector<AlienFX_SDK::Afx_action> action_zone4;
-
-            action_zone4.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 64, 64, 64});
-            action_zone4.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 128, 128, 128});
-            action_zone4.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 192, 192, 192});
-            action_zone4.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 255, 128, 0});
-            action_zone4.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 128, 0, 255});
-            action_zone4.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 0, 255, 128});
-            action_zone4.push_back(
-                {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 255, 0, 64});
-
-            std::vector<AlienFX_SDK::Afx_lightblock> lights;
-            lights.push_back({0, action_zone1});
-            lights.push_back({1, action_zone2});
-            lights.push_back({2, action_zone3});
-            lights.push_back({3, action_zone4});
-            afx_map.fxdevs[i].dev->SetMultiAction(&lights, true);
-            afx_map.fxdevs[i].dev->UpdateColors();
+            // std::vector<AlienFX_SDK::Afx_action> action_zone1{};
+            //
+            // action_zone1.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 255, 255, 255});
+            // action_zone1.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 0, 255, 255});
+            // action_zone1.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 0, 0, 255});
+            // action_zone1.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 255, 0, 255});
+            // action_zone1.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 255, 0, 0});
+            // action_zone1.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 255, 255, 0});
+            // action_zone1.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 0, 255, 0});
+            //
+            // std::vector<AlienFX_SDK::Afx_action> action_zone2{};
+            // action_zone2.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 100, 255, 100});
+            // action_zone2.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 0, 255, 190});
+            // action_zone2.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 0, 160, 255});
+            // action_zone2.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 120, 0, 255});
+            // action_zone2.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 255, 100, 0});
+            // action_zone2.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 255, 200, 0});
+            // action_zone2.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 0, 255, 100});
+            //
+            // std::vector<AlienFX_SDK::Afx_action> action_zone3;
+            //
+            // action_zone3.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 255, 128, 128});
+            // action_zone3.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 128, 255, 128});
+            // action_zone3.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 128, 128, 255});
+            // action_zone3.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 255, 0, 128});
+            // action_zone3.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 0, 255, 128});
+            // action_zone3.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 128, 255, 0});
+            // action_zone3.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 0, 128, 255});
+            //
+            // std::vector<AlienFX_SDK::Afx_action> action_zone4;
+            //
+            // action_zone4.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 64, 64, 64});
+            // action_zone4.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 128, 128, 128});
+            // action_zone4.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 192, 192, 192});
+            // action_zone4.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 255, 128, 0});
+            // action_zone4.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 128, 0, 255});
+            // action_zone4.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 0, 255, 128});
+            // action_zone4.push_back(
+            //     {AlienFX_SDK::AlienFX_A_Rainbow, 2, 64, 255, 0, 64});
+            //
+            // std::vector<AlienFX_SDK::Afx_lightblock> lights;
+            // lights.push_back({0, action_zone1});
+            // lights.push_back({1, action_zone2});
+            // lights.push_back({2, action_zone3});
+            // lights.push_back({3, action_zone4});
+            // afx_map.fxdevs[i].dev->SetMultiAction(&lights, true);
+            // afx_map.fxdevs[i].dev->UpdateColors();
 
             // NOTE: Brightness Test - Passed
             //

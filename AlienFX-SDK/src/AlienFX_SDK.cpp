@@ -841,7 +841,7 @@ bool Functions::SetGlobalEffects(std::uint8_t effType, std::uint8_t mode,
 
 std::uint8_t Functions::GetDeviceStatus() {
     std::uint8_t buffer[MAX_BUFFERSIZE];
-    // DWORD written;
+    // unsigned long written;
     if (devHandle)
         switch (version) {
         // case API_V9:
@@ -857,7 +857,6 @@ std::uint8_t Functions::GetDeviceStatus() {
         } break;
         case API_V4: {
             if (HidD_GetInputReport(devHandle, buffer, length)) {
-                std::cout << "Status: " << std::hex << buffer << std::endl;
                 // if (DeviceIoControl(devHandle, IOCTL_HID_GET_INPUT_REPORT,
                 // 0,
                 // 0, buffer, length, &written, NULL)) DebugPrint("Status: "
@@ -953,8 +952,10 @@ std::uint8_t Functions::IsDeviceReady() {
 Functions::~Functions() {
     if (devHandle) {
         hid_close(devHandle);
+#ifdef DEBUG
         LOG_S(INFO) << "Functions destructor: Close device handle for VID 0x"
                     << std::hex << vid << " PID: 0x" << pid;
+#endif
     }
 }
 
@@ -964,7 +965,9 @@ Mappings::Mappings() {
         LOG_S(ERROR) << "Failed to initialize libusb:  "
                      << libusb_error_name(result);
     } else {
+#ifdef DEBUG
         LOG_S(INFO) << "Mappings constructor: Initialized libusb";
+#endif
     }
 }
 
@@ -974,7 +977,9 @@ Mappings::~Mappings() {
     }
     if (ctx) {
         libusb_exit(ctx);
+#ifdef DEBUG
         LOG_S(INFO) << "Mappings destructor: Free libusb";
+#endif
     }
 }
 
@@ -1020,7 +1025,6 @@ void Mappings::AlienFxUpdateDevice(Functions *dev) {
 }
 
 bool Mappings::AlienFXEnumDevices(void *acc) {
-    LOG_S(INFO) << "Enumerating devices";
     Functions *dev = nullptr;
     deviceListChanged = false;
 
@@ -1138,8 +1142,10 @@ Afx_group *Mappings::GetGroupById(unsigned long gID) {
 }
 
 void Mappings::LoadMappings() {
-    // TODO: implement
+// TODO: implement
+#ifdef DEBUG
     LOG_S(INFO) << "Load mappings";
+#endif
     //   HKEY   mainKey;
     //
     // fxdevs.clear();
@@ -1148,21 +1154,21 @@ void Mappings::LoadMappings() {
     //
     // RegCreateKeyEx(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Alienfx_SDK"), 0,
     // NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &mainKey, NULL);
-    // unsigned vindex; char kName[255], name[255]; DWORD len, lend; int
-    // dID; WORD vid, pid; byte lID; for (vindex = 0; RegEnumValue(mainKey,
+    // unsigned vindex; char kName[255], name[255]; unsigned long len, lend; int
+    // dID; WORD vid, pid; uint8_t lID; for (vindex = 0; RegEnumValue(mainKey,
     // vindex, kName,
-    // &(len = 255), NULL, NULL, (LPBYTE)name, &(lend = 255)) ==
+    // &(len = 255), NULL, NULL, (LPuint8_t)name, &(lend = 255)) ==
     // ERROR_SUCCESS; vindex++) { 	if (sscanf_s(kName, "Dev#%hd_%hd", &vid,
     // &pid) == 2) { 		AddDeviceById(MAKELPARAM(pid,
     // vid))->name = string(name); 		continue;
     // 	}
     // 	if (sscanf_s(kName, "DevWhite#%hd_%hd", &vid, &pid) == 2) {
     // 		AddDeviceById(MAKELPARAM(pid, vid))->white.ci =
-    // ((DWORD*)name)[0]; 		continue;
+    // ((unsigned long*)name)[0]; 		continue;
     // 	}
     // 	if (sscanf_s(kName, "DevBright#%hd_%hd", &vid, &pid) == 2) {
     // 		AddDeviceById(MAKELPARAM(pid, vid))->brightness =
-    // ((DWORD*)name)[0]; 		continue;
+    // ((unsigned long*)name)[0]; 		continue;
     // 	}
     // }
     // for (vindex = 0; RegEnumKey(mainKey, vindex, kName, 255) ==
@@ -1170,7 +1176,7 @@ void Mappings::LoadMappings() {
     // &dID, &lID) == 2) { 		RegGetValue(mainKey, kName, "Name",
     // RRF_RT_REG_SZ, 0, name,
     // &(lend = 255)); 		RegGetValue(mainKey, kName, "Flags",
-    // RRF_RT_REG_DWORD, 0, &len, &(lend = sizeof(DWORD)));
+    // RRF_RT_REG_unsigned long, 0, &len, &(lend = sizeof(unsigned long)));
     // AddDeviceById(dID)->lights.push_back({ lID, { LOWORD(len),
     // HIWORD(len) }, name });
     // 	}
@@ -1178,13 +1184,13 @@ void Mappings::LoadMappings() {
     // 		RegGetValue(mainKey, kName, "Name", RRF_RT_REG_SZ, 0,
     // name,
     // &(lend = 255)); 		RegGetValue(mainKey, kName, "Size",
-    // RRF_RT_REG_DWORD, 0, &len, &(lend = sizeof(DWORD)));
-    // byte x = HIBYTE(len), y = LOBYTE(len); 		Afx_groupLight*
+    // RRF_RT_REG_unsigned long, 0, &len, &(lend = sizeof(unsigned long)));
+    // uint8_t x = HIBYTE(len), y = LOBYTE(len); 		Afx_groupLight*
     // grid = new Afx_groupLight[x
     // * y]; 		RegGetValue(mainKey, kName, "Grid",
     // RRF_RT_REG_BINARY, 0, grid,
-    // &(lend = x * y * sizeof(DWORD))); 		grids.push_back({
-    // (byte)dID, x, y, name, grid });
+    // &(lend = x * y * sizeof(unsigned long))); grids.push_back({ (uint8_t)dID,
+    // x, y, name, grid });
     // 	}
     // }
     // for (vindex = 0; RegEnumKey(mainKey, vindex, kName, 255) ==
@@ -1196,11 +1202,11 @@ void Mappings::LoadMappings() {
     // 		if (dID < 0) {
     // 			dID = 0x1ffff;
     // 		}
-    // 		groups.push_back({ (DWORD)dID, name });
+    // 		groups.push_back({ (unsigned long)dID, name });
     // 		vector<Afx_groupLight>* gl = &groups.back().lights;
     // 		if (RegGetValue(mainKey, kName, "LightList",
     // RRF_RT_REG_BINARY, 0, NULL, &lend) != ERROR_FILE_NOT_FOUND) {
-    // gl->resize(lend / sizeof(DWORD));
+    // gl->resize(lend / sizeof(unsigned long));
     // RegGetValue(mainKey, kName, "LightList", RRF_RT_REG_BINARY, 0,
     // gl->data(), &lend);
     // 		}
@@ -1209,9 +1215,63 @@ void Mappings::LoadMappings() {
     // RegCloseKey(mainKey);
 }
 
-void Mappings::SaveMappings() {
-    // TODO: implement
+void Mappings::SaveMappings(bool print) {
+// TODO: implement
+#ifdef DEBUG
     LOG_S(INFO) << "Save mappings";
+#endif
+    // Print device information
+    if (print) {
+        printf("Devices (%zu total):\n", fxdevs.size());
+        for (auto i = fxdevs.begin(); i != fxdevs.end(); i++) {
+            string devID = to_string(i->vid) + "_" + to_string(i->pid);
+            printf("  Device VID_%04x PID_%04x (ID: %s)\n", i->vid, i->pid,
+                   devID.c_str());
+
+            if (i->name.length()) {
+                printf("    Name: %s\n", i->name.c_str());
+            }
+
+            printf("    White Color Index: %d\n", i->white.ci);
+            printf("    Brightness: %d\n", i->brightness);
+
+            if (!i->lights.empty()) {
+                printf("    Lights (%zu):\n", i->lights.size());
+                for (auto cl = i->lights.begin(); cl < i->lights.end(); cl++) {
+                    printf("      Light %d: %s (Flags: 0x%x)\n", cl->lightid,
+                           cl->name.c_str(), cl->flags);
+                }
+            }
+            printf("\n");
+        }
+
+        // Print group information
+        if (!groups.empty()) {
+            printf("Groups (%zu total):\n", groups.size());
+            for (auto i = groups.begin(); i != groups.end(); i++) {
+                printf("  Group %d: %s\n", i->gid, i->name.c_str());
+                printf("    Lights in group: %zu\n", i->lights.size());
+                for (auto light = i->lights.begin(); light != i->lights.end();
+                     light++) {
+                    printf("      Device ID: %d, Light ID: %d\n", light->did,
+                           light->lid);
+                }
+                printf("\n");
+            }
+        }
+
+        // Print grid information
+        if (!grids.empty()) {
+            printf("Grids (%zu total):\n", grids.size());
+            for (auto i = grids.begin(); i != grids.end(); i++) {
+                printf("  Grid %d: %s\n", i->id, i->name.c_str());
+                printf("    Size: %dx%d\n", i->x, i->y);
+                printf("    Grid data:  %zu uint8_ts\n",
+                       i->x * i->y * sizeof(unsigned long));
+                printf("\n");
+            }
+        }
+    }
     //
     // HKEY   hKeybase, hKeyStore;
     // size_t numGroups = groups.size();
@@ -1227,22 +1287,23 @@ void Mappings::SaveMappings() {
     // 	// Saving device data..
     // 	string devID = to_string(i->vid) + "_" + to_string(i->pid);
     // 	string name = "Dev#" + devID;
-    // 	if (i->name.length())
-    // 		RegSetValueEx(hKeybase, name.c_str(), 0, REG_SZ, (BYTE
-    // *) i->name.c_str(), (DWORD) i->name.length() ); 	name =
+    // 	if (i->name. length())
+    // 		RegSetValueEx(hKeybase, name.c_str(), 0, REG_SZ, (uint8_t
+    // *) i->name.c_str(), (unsigned long) i->name.length() ); 	name =
     // "DevWhite#" + devID; 	RegSetValueEx(hKeybase, name.c_str(), 0,
-    // REG_DWORD, (BYTE *) &i->white.ci, sizeof(DWORD)); 	name =
-    // "DevBright#" + devID; DWORD br = i->brightness;
-    // RegSetValueEx(hKeybase, name.c_str(), 0, REG_DWORD, (BYTE*)&br,
-    // sizeof(DWORD)); 	for (auto cl = i->lights.begin(); cl <
-    // i->lights.end(); cl++) {
+    // REG_unsigned long, (uint8_t *) &i->white.ci, sizeof(unsigned long));
+    // name = "DevBright#" + devID; unsigned long br = i->brightness;
+    // RegSetValueEx(hKeybase, name.c_str(), 0, REG_unsigned long,
+    // (uint8_t*)&br, sizeof(unsigned long)); 	for (auto cl =
+    // i->lights.begin(); cl < i->lights.end(); cl++) {
     // 		// Saving all lights from current device
     // 		string name = "Light" + to_string(i->devID) + "-" +
     // to_string(cl->lightid); 		RegCreateKey(hKeybase,
     // name.c_str(), &hKeyStore); 		RegSetValueEx(hKeyStore, "Name",
-    // 0, REG_SZ, (BYTE*)cl->name.c_str(), (DWORD)cl->name.length());
-    // 		RegSetValueEx(hKeyStore, "Flags", 0, REG_DWORD,
-    // (BYTE*)&cl->data, sizeof(DWORD)); 		RegCloseKey(hKeyStore);
+    // 0, REG_SZ, (uint8_t*)cl->name.c_str(), (unsigned long)cl->name.length());
+    // 		RegSetValueEx(hKeyStore, "Flags", 0, REG_unsigned long,
+    // (uint8_t*)&cl->data, sizeof(unsigned long));
+    // RegCloseKey(hKeyStore);
     // 	}
     // }
     //
@@ -1250,26 +1311,27 @@ void Mappings::SaveMappings() {
     // 	string name = "Group" + to_string(i->gid);
     //
     // 	RegCreateKey(hKeybase, name.c_str(), &hKeyStore);
-    // 	RegSetValueEx(hKeyStore, "Name", 0, REG_SZ, (BYTE *)
-    // i->name.c_str(), (DWORD) i->name.length()); 	RegSetValueEx(hKeyStore,
-    // "LightList", 0, REG_BINARY, (BYTE*)i->lights.data(),
-    // (DWORD)i->lights.size() * sizeof(DWORD)); 	RegCloseKey(hKeyStore);
+    // 	RegSetValueEx(hKeyStore, "Name", 0, REG_SZ, (uint8_t *)
+    // i->name.c_str(), (unsigned long) i->name.length());
+    // RegSetValueEx(hKeyStore, "LightList", 0, REG_BINARY,
+    // (uint8_t*)i->lights.data(), (unsigned long)i->lights.size() *
+    // sizeof(unsigned long)); 	RegCloseKey(hKeyStore);
     // }
     //
     // for (auto i = grids.begin(); i != grids.end(); i++) {
     // 	string name = "Grid" + to_string(i->id);
-    // 	RegCreateKey(hKeybase, name.c_str(), &hKeyStore);
+    // 	RegCreateKey(hKeybase, name. c_str(), &hKeyStore);
     // 	RegSetValueEx(hKeyStore, "Name", 0, REG_SZ,
-    // (BYTE*)i->name.c_str(), (DWORD)i->name.length()); 	DWORD sizes =
-    // ((DWORD)i->x << 8) | i->y; 	RegSetValueEx(hKeyStore, "Size", 0,
-    // REG_DWORD, (BYTE*)&sizes, sizeof(DWORD)); 	RegSetValueEx(hKeyStore,
-    // "Grid", 0, REG_BINARY, (BYTE*)i->grid, i->x * i->y * sizeof(DWORD));
-    // RegCloseKey(hKeyStore);
+    // (uint8_t*)i->name.c_str(), (unsigned long)i->name.length()); 	unsigned
+    // long sizes =
+    // ((unsigned long)i->x << 8) | i->y; 	RegSetValueEx(hKeyStore, "Size",
+    // 0, REG_unsigned long, (uint8_t*)&sizes, sizeof(unsigned long));
+    // RegSetValueEx(hKeyStore, "Grid", 0, REG_BINARY, (uint8_t*)i->grid, i->x *
+    // i->y * sizeof(unsigned long)); RegCloseKey(hKeyStore);
     // }
     //
     // RegCloseKey(hKeybase);
 }
-
 Afx_light *Mappings::GetMappingByID(unsigned short pid, unsigned short lid) {
     Afx_device *dev = GetDeviceById(pid);
     return dev ? GetMappingByDev(dev, lid) : nullptr;

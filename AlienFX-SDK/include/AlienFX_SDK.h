@@ -290,7 +290,7 @@ class Mappings {
     void LoadMappings();
 
     // save light names into registry
-    void SaveMappings();
+    void SaveMappings(bool print = false);
 
     // Set device brightness
     // dev - point to AFX device info
