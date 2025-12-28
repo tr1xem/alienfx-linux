@@ -4,6 +4,7 @@
 #include "libusb_helper.h"
 #include <cstdint>
 #include <cstring>
+#include <hidapi/hidapi_libusb.h>
 #include <iomanip>
 #include <iostream>
 #include <loguru.hpp>
@@ -81,77 +82,59 @@ bool Functions::PrepareAndSend(const uint8_t *command,
     std::uint8_t buffer[MAX_BUFFERSIZE];
     int written{0};
     bool needV8Feature = true;
-    // if (reportIDList[version] == 0) {
-    //     memset(buffer, version == API_V6 ? 0xff : 0x00, length);
-    //     memcpy(buffer, command + 1, command[0]);
-    // } else {
     memset(buffer, version == API_V6 ? 0xff : 0x00, length);
     memcpy(buffer, command, command[0] + 1);
     buffer[0] = reportIDList[version];
-    // }
-    // if (version == API_V8 || version == API_V5)
-    //     buffer[0] = reportIDList[version];
 
     if (mods) {
         for (auto &m : *mods) {
-            // NOTE: As in linux size of buffer is 33 so we need to substract 1
-            // from it as in windows buffer size is 34
-            memcpy(buffer + (m.i - 1), m.vval.data(), m.vval.size());
+            memcpy(buffer + m.i, m.vval.data(), m.vval.size());
         }
         needV8Feature = mods->front().vval.size() == 1;
         mods->clear();
     }
-    bool result = false;
 
-    // NOTE: Attach device and claim interface
-    if (libusb_kernel_driver_active(devHandle, interface) == 1) {
-        int rc = libusb_detach_kernel_driver(devHandle, interface);
-        if (rc != 0) {
-            LOG_S(ERROR) << "Failed to detach kernel driver: "
-                         << libusb_error_name(rc);
-            return false;
-        }
+#ifdef DEBUG
+    LOG_S(INFO) << "Sending hid packet (" << length << " std::uint8_ts): ";
+    for (int i = 0; i < length; i++) {
+        std::cout << std::hex << setw(2) << setfill('0')
+                  << static_cast<unsigned>(buffer[i]) << ' ';
     }
+    std::cout << std::dec << std::endl;
+#endif
     if (!devHandle) {
-        LOG_S(ERROR) << "Failed to open device";
+        LOG_S(ERROR) << "HID device not open";
         return false;
     }
-
-    int rc = libusb_claim_interface(devHandle, interface);
-    if (rc != 0) {
-        LOG_S(ERROR) << "Failed to claim interface: " << libusb_error_name(rc);
-        return false;
-    }
-
+    bool result = false;
     switch (version) {
     case API_V2:
     case API_V3:
     case API_V4:
-        result = HidD_SetOutputReport(devHandle, buffer, length, interface);
+        result = HidD_SetOutputReport(devHandle, buffer, length);
         break;
     case API_V5:
-        result = HidD_SetFeature(devHandle, buffer, length, interface);
+        result = HidD_SetFeature(devHandle, buffer, length);
         break;
     case API_V6:
-        result = WriteFile(devHandle, buffer, length, written, out_ep);
+        result = WriteFile(devHandle, buffer, length);
         break;
     case API_V7:
-        WriteFile(devHandle, buffer, length, written, out_ep);
-        result = ReadFile(devHandle, buffer, length, written, in_ep);
+        WriteFile(devHandle, buffer, length);
+        result = ReadFile(devHandle, buffer, length);
         break;
     case API_V8:
         if (needV8Feature) {
             usleep(3000);
-            result = HidD_SetFeature(devHandle, buffer, length, interface);
+            result = HidD_SetFeature(devHandle, buffer, length);
             usleep(6000);
             break;
         } else {
-            result = WriteFile(devHandle, buffer, length, written, out_ep);
+            result = WriteFile(devHandle, buffer, length);
         }
 
         break;
     }
-    libusb_release_interface(devHandle, interface);
     return result;
 }
 
@@ -186,76 +169,10 @@ void Functions::SavePowerBlock(uint8_t blID, Afx_lightblock *act, bool needSave,
     // return true;
 }
 
-bool Functions::AlienFXProbeDevice(libusb_device *device, libusb_context *ctxx,
-                                   unsigned short vidd, unsigned short pidd) {
+bool Functions::AlienFXProbeDevice(libusb_context *ctxx, unsigned short vidd,
+                                   unsigned short pidd) {
     version = API_UNKNOWN;
-    libusb_config_descriptor *config = nullptr;
-    int result = libusb_get_config_descriptor(device, 0, &config);
-    if (result != 0) {
-        return false;
-    }
-
-    for (int ifc = 0; ifc < config->bNumInterfaces; ifc++) {
-        const libusb_interface &iface = config->interface[ifc];
-        for (int alt = 0; alt < iface.num_altsetting; alt++) {
-            const libusb_interface_descriptor &altset = iface.altsetting[alt];
-
-            // printf("\nInterface %d, Alt %d:\n", ifc, alt);
-            // printf("  bInterfaceNumber    %u\n", altset.bInterfaceNumber);
-            // printf("  baltseternateSetting   %u\n",
-            // altset.bAlternateSetting); printf("  bNumEndpoints       %u\n",
-            // altset.bNumEndpoints); printf("  bInterfaceClass     0x%02x\n",
-            // altset.bInterfaceClass); printf("  bInterfaceSubClass  0x%02x\n",
-            // altset.bInterfaceSubClass); printf("  bInterfaceProtocol
-            // 0x%02x\n",
-            //        altset.bInterfaceProtocol);
-            // printf("  iInterface  %u\n", altset.iInterface);
-
-            if (altset.bInterfaceClass != LIBUSB_CLASS_HID)
-                return false;
-
-            interface = altset.bInterfaceNumber;
-            for (int ep = 0; ep < altset.bNumEndpoints; ep++) {
-                const libusb_endpoint_descriptor &e = altset.endpoint[ep];
-
-                // printf("    Endpoint %d:\n", ep);
-                // printf(
-                //     "      bEndpointAddress 0x%02x (%s)\n",
-                //     e.bEndpointAddress, (e.bEndpointAddress &
-                //     LIBUSB_ENDPOINT_IN) ? "IN" : "OUT");
-                // printf("      bmAttributes     0x%02x\n", e.bmAttributes);
-                // printf("      wMaxPacketSize   %u\n",
-                //        e.wMaxPacketSize & 0x07FF);
-                // printf("      bInterval        %u\n", e.bInterval);
-                // if ((e.bmAttributes & LIBUSB_TRANSFER_TYPE_MASK) !=
-                //     LIBUSB_TRANSFER_TYPE_INTERRUPT)
-                //     continue;
-
-                // Store IN/OUT endpoint
-                if ((e.bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK) ==
-                    LIBUSB_ENDPOINT_OUT) {
-                    out_ep = e.bEndpointAddress;
-                } else {
-                    in_ep = e.bEndpointAddress;
-                }
-
-                // NOTE: Check the max packet size for IN endpoint
-                if ((e.bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK) ==
-                    LIBUSB_ENDPOINT_IN) {
-                    length = (e.wMaxPacketSize & 0x07FF) + 1;
-                    /*
-                    LOG_S(INFO) << "VID: 0x" << std::hex << vidd << " PID: 0x"
-                                << std::hex << (int)pidd
-                                << " IN EP: " << std::hex << (int)in_ep
-                                << ", Length: " << std::dec << (int)length;
-                    */
-                }
-            }
-        }
-    }
-
-    libusb_free_config_descriptor(config);
-
+    length = GetMaxPacketSize(ctxx, vidd, pidd);
     switch (vidd) {
     case 0x0d62: // Darfon
         switch (length) {
@@ -298,25 +215,32 @@ bool Functions::AlienFXProbeDevice(libusb_device *device, libusb_context *ctxx,
             }
     }
 
-    pid = pidd;
-    vid = vidd;
-    ctx = ctxx;
-    libusb_device_descriptor desc{};
-    libusb_get_device_descriptor(device, &desc);
-    uint8_t buf[256];
-    if (libusb_open(device, &devHandle) != 0) {
+    if (version == API_UNKNOWN) {
+        // LOG_S(ERROR) << "Device not found";
         return false;
     }
-
-    if (desc.iManufacturer &&
-        libusb_get_string_descriptor_ascii(devHandle, desc.iManufacturer, buf,
-                                           sizeof(buf)) > 0) {
-        description.append(reinterpret_cast<char *>(buf));
+    vid = vidd;
+    pid = pidd;
+    devHandle = hid_open(vid, pid, nullptr);
+    if (!devHandle) {
+        LOG_S(ERROR) << "Failed to open HID device VID:0x" << std::hex << vid
+                     << " PID:0x" << pid;
+        return false;
     }
+    wchar_t wbuf[256];
+    if (hid_get_manufacturer_string(devHandle, wbuf,
+                                    sizeof(wbuf) / sizeof(wchar_t)) >= 0) {
+        for (int i = 0; wbuf[i] != 0; i++) {
+            description += static_cast<char>(wbuf[i]);
+        }
+    }
+
     description.append(" ");
-    if (desc.iProduct && libusb_get_string_descriptor_ascii(
-                             devHandle, desc.iProduct, buf, sizeof(buf)) > 0) {
-        description.append(reinterpret_cast<char *>(buf));
+    if (hid_get_product_string(devHandle, wbuf,
+                               sizeof(wbuf) / sizeof(wchar_t)) >= 0) {
+        for (int i = 0; wbuf[i] != 0; i++) {
+            description += static_cast<char>(wbuf[i]);
+        }
     }
 #ifdef DEBUG
     LOG_S(INFO) << "Probing device VID: 0x" << std::hex << std::setw(4)
@@ -324,10 +248,7 @@ bool Functions::AlienFXProbeDevice(libusb_device *device, libusb_context *ctxx,
                 << std::setw(4) << std::setfill('0') << static_cast<int>(pidd)
                 << ", Version: " << std::dec
                 << version // switch back to decimal
-                << ", Length: " << length << ", Description: " << description
-                << ", OUT EP: 0x" << std::hex << static_cast<int>(out_ep)
-                << ", IN EP: 0x" << static_cast<int>(in_ep)
-                << ", Interface: " << std::dec << interface;
+                << ", Length: " << length << ", Description: " << description;
 
 #endif
     return version != API_UNKNOWN;
@@ -361,6 +282,9 @@ bool Functions::AlienFXProbeDevice(libusb_device *device, libusb_context *ctxx,
 //   }
 
 bool Functions::Reset() {
+#ifdef DEBUG
+    LOG_S(INFO) << "Resetting device " << std::hex << vid << ":" << pid;
+#endif
     switch (version) {
     // case API_V9:
     //	if (chain) {
@@ -774,7 +698,7 @@ bool Functions::SetPowerAction(vector<Afx_lightblock> *act, bool save) {
             PrepareAndSend(COMMV4_control, {{4, {5}} /*, { 6, 0x61 }*/});
 #ifdef DEBUG
             if (!WaitForBusy())
-                LOG_S(WARNING) << "Power device busy timeout!";
+                LOG_S(ERROR) << "Power device busy timeout!";
 #else
             // WaitForBusy();
 #endif
@@ -834,12 +758,14 @@ bool Functions::SetPowerAction(vector<Afx_lightblock> *act, bool save) {
 
 bool Functions::SetBrightness(std::uint8_t brightness, std::uint8_t gbr,
                               vector<Afx_light> *mappings, bool power) {
-    // return true if update needed
+// return true if update needed
+#ifdef DEBUG
     LOG_S(INFO) << "State update: PID: 0x" << std::hex << std::setw(4)
                 << std::setfill('0') << pid << ", VID: 0x" << std::hex
                 << std::setw(4) << std::setfill('0') << vid
                 << ", brightness: " << to_string(brightness)
                 << ", power: " << to_string(power);
+#endif
 
     if (inSet)
         UpdateColors();
@@ -915,7 +841,7 @@ bool Functions::SetGlobalEffects(std::uint8_t effType, std::uint8_t mode,
 
 std::uint8_t Functions::GetDeviceStatus() {
     std::uint8_t buffer[MAX_BUFFERSIZE];
-    // unsigned long written;
+    // DWORD written;
     if (devHandle)
         switch (version) {
         // case API_V9:
@@ -925,14 +851,17 @@ std::uint8_t Functions::GetDeviceStatus() {
             PrepareAndSend(COMMV5_status);
             if (HidD_GetFeature(devHandle, buffer, length))
                 // if (DeviceIoControl(devHandle, IOCTL_HID_GET_FEATURE, 0,
-                // 0, buffer, length, &written, NULL))
+                // 0,
+                // buffer, length, &written, NULL))
                 return buffer[2];
         } break;
         case API_V4: {
-            if (HidD_GetInputReport(devHandle, buffer, length, in_ep)) {
-                // if (DeviceIoControl(devHandle,
-                // IOCTL_HID_GET_INPUT_REPORT, 0, 0, buffer, length,
-                // &written, NULL)) DebugPrint("Status: " +
+            if (HidD_GetInputReport(devHandle, buffer, length)) {
+                std::cout << "Status: " << std::hex << buffer << std::endl;
+                // if (DeviceIoControl(devHandle, IOCTL_HID_GET_INPUT_REPORT,
+                // 0,
+                // 0, buffer, length, &written, NULL)) DebugPrint("Status: "
+                // +
                 // to_string(buffer[2]) + "\n");
                 return buffer[2];
             }
@@ -940,10 +869,10 @@ std::uint8_t Functions::GetDeviceStatus() {
         case API_V3:
         case API_V2: {
             PrepareAndSend(COMMV1_status);
-            if (HidD_GetInputReport(devHandle, buffer, length, in_ep))
-                // if (DeviceIoControl(devHandle,
-                // IOCTL_HID_GET_INPUT_REPORT, 0, 0, buffer, length,
-                // &written, NULL))
+            if (HidD_GetInputReport(devHandle, buffer, length))
+                // if (DeviceIoControl(devHandle, IOCTL_HID_GET_INPUT_REPORT,
+                // 0,
+                // 0, buffer, length, &written, NULL))
                 return buffer[0];
         } break;
         }
@@ -951,6 +880,10 @@ std::uint8_t Functions::GetDeviceStatus() {
 }
 
 std::uint8_t Functions::WaitForReady() {
+#ifdef DEBUG
+    LOG_S(INFO) << "Waiting for device " << std::hex << vid << ":" << pid
+                << " to be ready";
+#endif
     int i = 0;
     switch (version) {
     case API_V3:
@@ -1019,7 +952,7 @@ std::uint8_t Functions::IsDeviceReady() {
 
 Functions::~Functions() {
     if (devHandle) {
-        libusb_close(devHandle);
+        hid_close(devHandle);
         LOG_S(INFO) << "Functions destructor: Close device handle for VID 0x"
                     << std::hex << vid << " PID: 0x" << pid;
     }
@@ -1092,63 +1025,48 @@ bool Mappings::AlienFXEnumDevices(void *acc) {
     deviceListChanged = false;
 
     // Reset active status
-    for (auto i = fxdevs.begin(); i != fxdevs.end(); i++)
-        i->present = false;
+    for (auto &d : fxdevs)
+        d.present = false;
     activeDevices = activeLights = 0;
 
-    libusb_device **device_list;
-    ssize_t device_count = libusb_get_device_list(ctx, &device_list);
+    // Enumerate all HID devices
+    struct hid_device_info *devs = hid_enumerate(0x0, 0x0);
+    struct hid_device_info *cur_dev = devs;
 
-    if (device_count < 0) {
-        LOG_S(ERROR) << "Failed to get device list: "
-                     << libusb_error_name(device_count);
-        return deviceListChanged;
-    }
+    while (cur_dev) {
 
-    // Iterate through all USB devices
-    for (ssize_t i = 0; i < device_count; i++) {
-        libusb_device *device = device_list[i];
-        struct libusb_device_descriptor desc;
-
-        // Get device descriptor
-        int result = libusb_get_device_descriptor(device, &desc);
-        if (result < 0) {
-            continue; // Skip this device if we can't get descriptor
-        }
-
-        // Create new Functions object for each potential device
-        dev = new Functions(ctx);
-
-        // Try to probe/initialize this device
-        if (dev->AlienFXProbeDevice(device, ctx, desc.idVendor,
-                                    desc.idProduct)) {
+        dev = new Functions();
+        if (dev->AlienFXProbeDevice(ctx, cur_dev->vendor_id,
+                                    cur_dev->product_id)) {
 #ifdef DEBUG
             LOG_S(INFO) << "Found AlienFX device - VID: 0x" << std::hex
-                        << desc.idVendor << ", PID: 0x" << desc.idProduct;
+                        << cur_dev->vendor_id << ", PID: 0x"
+                        << cur_dev->product_id;
 #endif
             AlienFxUpdateDevice(dev);
         } else {
-            // Device probe failed, clean up
             delete dev;
             dev = nullptr;
         }
+        cur_dev = cur_dev->next;
     }
 
-    // Free the device list
-    libusb_free_device_list(device_list, 1);
+    hid_free_enumeration(devs);
 
     // Check removed devices
-    for (auto i = fxdevs.begin(); i != fxdevs.end(); i++) {
-        if (!i->present && i->dev) {
+    for (auto &d : fxdevs) {
+        if (!d.present && d.dev) {
             deviceListChanged = true;
-            LOG_S(INFO) << "Device removed - VID: 0x" << std::hex << i->vid
-                        << ", PID:  0x" << i->pid;
-            i->arrived = false;
+            LOG_S(INFO) << "Device removed - VID: 0x" << std::hex << d.vid
+                        << ", PID: 0x" << d.pid;
+            d.arrived = false;
             break;
         }
     }
+
     return deviceListChanged;
 }
+
 Afx_device *Mappings::GetDeviceById(unsigned short pid, unsigned short vid) {
     for (auto pos = fxdevs.begin(); pos < fxdevs.end(); pos++)
         if (pos->pid == pid && (!vid || pos->vid == vid)) {

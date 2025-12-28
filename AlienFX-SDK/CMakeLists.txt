@@ -40,6 +40,25 @@ if(NOT LOGURU_FOUND)
     set(LOGURU_INCLUDE_DIRS ${LoguruGitRepo_SOURCE_DIR})
 endif()
 
+# ----------- HIDAPI ------------
+
+pkg_check_modules(HIDAPI hidapi-hidraw hidapi-libusb)
+if(NOT HIDAPI_FOUND)
+    message(STATUS "hidapi not found, fetching from GitHub...")
+    FetchContent_Declare(hidapi
+        GIT_REPOSITORY https://github.com/libusb/hidapi.git
+        GIT_TAG master
+        GIT_SHALLOW TRUE
+    )
+    FetchContent_MakeAvailable(hidapi)
+
+    # hidapi provides multiple targets; pick hidraw on Linux
+    set(HIDAPI_LIBRARIES hidapi-hidraw)
+    set(HIDAPI_INCLUDE_DIRS ${hidapi_SOURCE_DIR}/hidapi)
+else()
+    message(STATUS "Found system hidapi")
+endif()
+
 # ----------- SDK SOURCES ------------
 
 file(GLOB_RECURSE SDK_SOURCES CONFIGURE_DEPENDS src/*.cpp)
@@ -51,11 +70,13 @@ target_include_directories(AlienFX_SDK
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${LIBUSB_INCLUDE_DIRS}
         ${LOGURU_INCLUDE_DIRS}
+        ${HIDAPI_INCLUDE_DIRS}
 )
 
 target_link_libraries(AlienFX_SDK
     PUBLIC
         ${LIBUSB_LIBRARIES}
         ${LOGURU_LIBRARIES}
+        ${HIDAPI_LIBRARIES}
 )
 
