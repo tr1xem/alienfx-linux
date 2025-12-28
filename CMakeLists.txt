@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(AlienFX_Project LANGUAGES CXX)
-# add_compile_definitions(DEBUG)
+add_compile_definitions(DEBUG)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
