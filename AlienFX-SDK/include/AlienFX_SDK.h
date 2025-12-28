@@ -138,6 +138,7 @@ class Functions {
 
     bool inSet = false;
 
+    int interface = 0;
     int length = -1;   // HID report length
     uint8_t chain = 1; // seq. number for APIv1-v3
 
