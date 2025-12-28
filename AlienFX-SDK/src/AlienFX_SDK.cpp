@@ -9,6 +9,7 @@
 #include <iostream>
 #include <loguru.hpp>
 #include <unistd.h>
+#include <unordered_set>
 #define LOWORD(l) ((uint16_t)((l) & 0xFFFF))
 #define HIWORD(l) ((uint16_t)(((l) >> 16) & 0xFFFF))
 
@@ -173,7 +174,7 @@ void Functions::SavePowerBlock(uint8_t blID, Afx_lightblock *act, bool needSave,
 }
 
 bool Functions::AlienFXProbeDevice(libusb_context *ctxx, unsigned short vidd,
-                                   unsigned short pidd) {
+                                   unsigned short pidd, char *pathh) {
     version = API_UNKNOWN;
     length = GetMaxPacketSize(ctxx, vidd, pidd);
     switch (vidd) {
@@ -224,6 +225,7 @@ bool Functions::AlienFXProbeDevice(libusb_context *ctxx, unsigned short vidd,
     }
     vid = vidd;
     pid = pidd;
+    path = pathh;
     devHandle = hid_open(vid, pid, nullptr);
     if (!devHandle) {
         LOG_S(ERROR) << "Failed to open HID device VID:0x" << std::hex << vid
@@ -1030,6 +1032,7 @@ void Mappings::AlienFxUpdateDevice(Functions *dev) {
 bool Mappings::AlienFXEnumDevices(void *acc) {
     Functions *dev = nullptr;
     deviceListChanged = false;
+    std::unordered_set<std::string> seen_paths;
 
     // Reset active status
     for (auto &d : fxdevs)
@@ -1043,8 +1046,15 @@ bool Mappings::AlienFXEnumDevices(void *acc) {
     while (cur_dev) {
 
         dev = new Functions();
+        // NOTE: Deduplicate devices with same path
+        if (seen_paths.count(cur_dev->path)) {
+            cur_dev = cur_dev->next;
+            continue;
+        }
+        seen_paths.insert(cur_dev->path);
+
         if (dev->AlienFXProbeDevice(ctx, cur_dev->vendor_id,
-                                    cur_dev->product_id)) {
+                                    cur_dev->product_id, cur_dev->path)) {
 #ifdef DEBUG
             LOG_S(INFO) << "Found AlienFX device - VID: 0x" << std::hex
                         << cur_dev->vendor_id << ", PID: 0x"

@@ -51,16 +51,18 @@ Some notebooks can have 2 devices - APIv4 (for logo, power button, etc) and APIv
 
 ## Dependencies
 
-- Libusb
-- Hidapi
+- cmake
+- ninja
+- libusb
+- hidapi
 
 ## Build
 
 ```bash
 mkdir build/
 cd build/
-cmake ..
-make
+cmake .. -G ninja
+ninja
 ```
 
 It would build 3 executables:
