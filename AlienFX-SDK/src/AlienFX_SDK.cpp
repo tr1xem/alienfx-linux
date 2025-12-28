@@ -81,14 +81,14 @@ bool Functions::PrepareAndSend(const uint8_t *command,
     std::uint8_t buffer[MAX_BUFFERSIZE];
     int written{0};
     bool needV8Feature = true;
-    if (reportIDList[version] == 0) {
-        memset(buffer, version == API_V6 ? 0xff : 0x00, length);
-        memcpy(buffer, command + 1, command[0]);
-    } else {
-        memset(buffer, version == API_V6 ? 0xff : 0x00, length);
-        memcpy(buffer, command, command[0] + 1);
-        buffer[0] = reportIDList[version];
-    }
+    // if (reportIDList[version] == 0) {
+    //     memset(buffer, version == API_V6 ? 0xff : 0x00, length);
+    //     memcpy(buffer, command + 1, command[0]);
+    // } else {
+    memset(buffer, version == API_V6 ? 0xff : 0x00, length);
+    memcpy(buffer, command, command[0] + 1);
+    buffer[0] = reportIDList[version];
+    // }
     // if (version == API_V8 || version == API_V5)
     //     buffer[0] = reportIDList[version];
 
@@ -101,19 +101,11 @@ bool Functions::PrepareAndSend(const uint8_t *command,
         needV8Feature = mods->front().vval.size() == 1;
         mods->clear();
     }
-#ifdef DEBUG
-    LOG_S(INFO) << "Sending USB packet (" << length << " std::uint8_ts): ";
-    for (int i = 0; i < length; i++) {
-        std::cout << std::hex << setw(2) << std::setfill('0')
-                  << static_cast<int>(buffer[i]) << " ";
-    }
-    std::cout << std::dec << std::endl;
-#endif
     bool result = false;
 
     // NOTE: Attach device and claim interface
-    if (libusb_kernel_driver_active(devHandle, 0) == 1) {
-        int rc = libusb_detach_kernel_driver(devHandle, 0);
+    if (libusb_kernel_driver_active(devHandle, interface) == 1) {
+        int rc = libusb_detach_kernel_driver(devHandle, interface);
         if (rc != 0) {
             LOG_S(ERROR) << "Failed to detach kernel driver: "
                          << libusb_error_name(rc);
@@ -125,7 +117,7 @@ bool Functions::PrepareAndSend(const uint8_t *command,
         return false;
     }
 
-    int rc = libusb_claim_interface(devHandle, 0);
+    int rc = libusb_claim_interface(devHandle, interface);
     if (rc != 0) {
         LOG_S(ERROR) << "Failed to claim interface: " << libusb_error_name(rc);
         return false;
@@ -135,10 +127,10 @@ bool Functions::PrepareAndSend(const uint8_t *command,
     case API_V2:
     case API_V3:
     case API_V4:
-        result = HidD_SetOutputReport(devHandle, buffer, length);
+        result = HidD_SetOutputReport(devHandle, buffer, length, interface);
         break;
     case API_V5:
-        result = HidD_SetFeature(devHandle, buffer, length);
+        result = HidD_SetFeature(devHandle, buffer, length, interface);
         break;
     case API_V6:
         result = WriteFile(devHandle, buffer, length, written, out_ep);
@@ -150,7 +142,7 @@ bool Functions::PrepareAndSend(const uint8_t *command,
     case API_V8:
         if (needV8Feature) {
             usleep(3000);
-            result = HidD_SetFeature(devHandle, buffer, length);
+            result = HidD_SetFeature(devHandle, buffer, length, interface);
             usleep(6000);
             break;
         } else {
@@ -159,7 +151,7 @@ bool Functions::PrepareAndSend(const uint8_t *command,
 
         break;
     }
-    libusb_release_interface(devHandle, 0);
+    libusb_release_interface(devHandle, interface);
     return result;
 }
 
@@ -222,6 +214,7 @@ bool Functions::AlienFXProbeDevice(libusb_device *device, libusb_context *ctxx,
             if (altset.bInterfaceClass != LIBUSB_CLASS_HID)
                 return false;
 
+            interface = altset.bInterfaceNumber;
             for (int ep = 0; ep < altset.bNumEndpoints; ep++) {
                 const libusb_endpoint_descriptor &e = altset.endpoint[ep];
 
@@ -249,7 +242,7 @@ bool Functions::AlienFXProbeDevice(libusb_device *device, libusb_context *ctxx,
                 // NOTE: Check the max packet size for IN endpoint
                 if ((e.bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK) ==
                     LIBUSB_ENDPOINT_IN) {
-                    length = e.wMaxPacketSize & 0x07FF;
+                    length = (e.wMaxPacketSize & 0x07FF) + 1;
                     /*
                     LOG_S(INFO) << "VID: 0x" << std::hex << vidd << " PID: 0x"
                                 << std::hex << (int)pidd
@@ -265,14 +258,14 @@ bool Functions::AlienFXProbeDevice(libusb_device *device, libusb_context *ctxx,
 
     switch (vidd) {
     case 0x0d62: // Darfon
-        switch (length + 1) {
+        switch (length) {
         case 65:
             version = API_V5;
             break;
         }
         break;
     case 0x187c: // Alienware
-        switch (length + 1) {
+        switch (length) {
         case 9:
             version = API_V2;
             break;
@@ -290,7 +283,7 @@ bool Functions::AlienFXProbeDevice(libusb_device *device, libusb_context *ctxx,
         }
         break;
     default:
-        if (length + 1 == 65)
+        if (length == 65)
             switch (vidd) {
             case 0x0424: // Microchip
                 if (pidd != 0x274c)
@@ -333,7 +326,8 @@ bool Functions::AlienFXProbeDevice(libusb_device *device, libusb_context *ctxx,
                 << version // switch back to decimal
                 << ", Length: " << length << ", Description: " << description
                 << ", OUT EP: 0x" << std::hex << static_cast<int>(out_ep)
-                << ", IN EP: 0x" << static_cast<int>(in_ep);
+                << ", IN EP: 0x" << static_cast<int>(in_ep)
+                << ", Interface: " << std::dec << interface;
 
 #endif
     return version != API_UNKNOWN;
