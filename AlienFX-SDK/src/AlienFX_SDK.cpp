@@ -224,6 +224,11 @@ bool Functions::AlienFXProbeDevice(libusb_context *ctxx, unsigned short vidd,
         // LOG_S(ERROR) << "Device not found";
         return false;
     }
+    // NOTE: TO compensate for hidapi making it length-1 if report id is not
+    // zero
+    if (reportIDList[version] != 0) {
+        length--;
+    }
     vid = vidd;
     pid = pidd;
     path = pathh;
