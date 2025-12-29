@@ -113,12 +113,13 @@ int main(int argc, char *argv[]) {
 
     if (afx_map.activeDevices) {
         devType = 1;
-        // set brightness
-        for (auto &dev : afx_map.fxdevs) {
-            if (dev.present) {
-                afx_map.SetDeviceBrightness(&dev, 255, true);
-            }
-        }
+        // NOTE: We doing this when we are on the light itself
+        //  set brightness
+        //  for (auto &dev : afx_map.fxdevs) {
+        //      if (dev.present) {
+        //          afx_map.SetDeviceBrightness(&dev, 255, true);
+        //      }
+        //  }
     }
     LOG_F(INFO, "%d low-level devices found.", afx_map.activeDevices);
 
@@ -435,7 +436,13 @@ int main(int argc, char *argv[]) {
                                                lmap->name.c_str());
                                     }
 
+                                    std::vector<AlienFX_SDK::Afx_light> light;
+                                    light.push_back(
+                                        {i, 0x0000, 0x0000, "test"});
+
                                     printf(", New name (ENTER to skip): ");
+                                    cDev->dev->SetBrightness(255, globalBright,
+                                                             &light, false);
                                     cDev->dev->SetAction(&lon);
                                     cDev->dev->UpdateColors();
                                     fgets(name, sizeof(name), stdin);
