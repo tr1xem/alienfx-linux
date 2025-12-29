@@ -1002,50 +1002,41 @@ Mappings::~Mappings() {
 }
 
 void Mappings::AlienFxUpdateDevice(Functions *dev) {
-// TODO: Devinfo persistant vector
-#ifdef DEBUG
-    LOG_S(INFO) << "Update device " << std::hex << dev->vid << ":" << std::hex
-                << dev->pid;
-#endif
-    // auto devInfo = GetDeviceById(dev->pid, dev->vid);
-    // if (devInfo) {
-    //     devInfo->version = dev->version;
-    //     devInfo->present = true;
-    //     activeLights += (unsigned)devInfo->lights.size();
-    //     if (devInfo->dev) {
-    //         delete dev;
-    //         DebugPrint("Scan: VID: " + to_string(devInfo->vid) +
-    //                    ", PID: " + to_string(devInfo->pid) + ", Version:
-    //                    " + to_string(devInfo->version) + " - present
-    //                    already\n");
-    //         devInfo->arrived = false;
-    //     } else {
-    //         devInfo->dev = dev;
-    //         deviceListChanged = devInfo->arrived = true;
-    //         DebugPrint("Scan: VID: " + to_string(devInfo->vid) +
-    //                    ", PID: " + to_string(devInfo->pid) + ", Version:
-    //                    " + to_string(devInfo->version) + " - return
-    //                    back\n");
-    //     }
-    //     activeDevices++;
-    // } else {
-    fxdevs.push_back({dev->pid, dev->vid, dev, dev->description, dev->version});
-    deviceListChanged = fxdevs.back().arrived = fxdevs.back().present = true;
-    activeDevices++;
-#ifdef DEBUG
-    LOG_S(INFO) << "Scan: VID: 0x" << std::hex << std::setw(4)
-                << std::setfill('0') << dev->vid << ", PID: 0x" << std::hex
-                << std::setw(4) << std::setfill('0') << dev->pid
-                << ", Version: " << to_string(dev->version)
-                << " - new device added";
-#endif
-    //}
+    auto devInfo = GetDeviceById(dev->pid, dev->vid);
+    if (devInfo) {
+        devInfo->version = dev->version;
+        devInfo->present = true;
+        activeLights += (unsigned)devInfo->lights.size();
+        if (devInfo->dev) {
+            delete dev;
+            LOG_S(INFO) << "Scan: VID: " << std::hex << devInfo->vid
+                        << ", PID: " << std::hex << devInfo->pid
+                        << ", Version: " << devInfo->version
+                        << " - present already";
+            devInfo->arrived = false;
+        } else {
+            devInfo->dev = dev;
+            deviceListChanged = devInfo->arrived = true;
+            LOG_S(INFO) << "Scan: VID: " << std::hex << devInfo->vid
+                        << ", PID: " << std::hex << devInfo->pid
+                        << ", Version: " << devInfo->version
+                        << " - return back";
+        }
+        activeDevices++;
+    } else {
+        fxdevs.push_back(
+            {dev->pid, dev->vid, dev, dev->description, dev->version});
+        deviceListChanged = fxdevs.back().arrived = fxdevs.back().present =
+            true;
+        activeDevices++;
+        LOG_S(INFO) << "Scan: VID: " << std::hex << dev->vid
+                    << ", PID: " << std::hex << dev->pid
+                    << ", Version: " << dev->version << " - new device added";
+    }
 }
-
 bool Mappings::AlienFXEnumDevices(void *acc) {
     Functions *dev = nullptr;
     deviceListChanged = false;
-    std::unordered_set<std::string> seen_paths;
 
     // Reset active status
     for (auto &d : fxdevs)
@@ -1059,17 +1050,6 @@ bool Mappings::AlienFXEnumDevices(void *acc) {
     while (cur_dev) {
 
         dev = new Functions();
-        // NOTE: Deduplicate devices with same path
-        if (seen_paths.count(cur_dev->path)) {
-#ifdef DEBUG
-            LOG_S(INFO) << "Skipping duplicate device - VID: 0x" << std::hex
-                        << cur_dev->vendor_id << ", PID: 0x"
-                        << cur_dev->product_id << ", Path: " << cur_dev->path;
-#endif
-            cur_dev = cur_dev->next;
-            continue;
-        }
-        seen_paths.insert(cur_dev->path);
 
         if (dev->AlienFXProbeDevice(ctx, cur_dev->vendor_id,
                                     cur_dev->product_id, cur_dev->path)) {
@@ -1185,9 +1165,9 @@ void Mappings::LoadMappings() {
     //
     // RegCreateKeyEx(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Alienfx_SDK"), 0,
     // NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &mainKey, NULL);
-    // unsigned vindex; char kName[255], name[255]; unsigned long len, lend; int
-    // dID; WORD vid, pid; uint8_t lID; for (vindex = 0; RegEnumValue(mainKey,
-    // vindex, kName,
+    // unsigned vindex; char kName[255], name[255]; unsigned long len, lend;
+    // int dID; WORD vid, pid; uint8_t lID; for (vindex = 0;
+    // RegEnumValue(mainKey, vindex, kName,
     // &(len = 255), NULL, NULL, (LPuint8_t)name, &(lend = 255)) ==
     // ERROR_SUCCESS; vindex++) { 	if (sscanf_s(kName, "Dev#%hd_%hd", &vid,
     // &pid) == 2) { 		AddDeviceById(MAKELPARAM(pid,
@@ -1220,8 +1200,8 @@ void Mappings::LoadMappings() {
     // grid = new Afx_groupLight[x
     // * y]; 		RegGetValue(mainKey, kName, "Grid",
     // RRF_RT_REG_BINARY, 0, grid,
-    // &(lend = x * y * sizeof(unsigned long))); grids.push_back({ (uint8_t)dID,
-    // x, y, name, grid });
+    // &(lend = x * y * sizeof(unsigned long))); grids.push_back({
+    // (uint8_t)dID, x, y, name, grid });
     // 	}
     // }
     // for (vindex = 0; RegEnumKey(mainKey, vindex, kName, 255) ==
@@ -1319,7 +1299,8 @@ void Mappings::SaveMappings(bool print) {
     // 	string devID = to_string(i->vid) + "_" + to_string(i->pid);
     // 	string name = "Dev#" + devID;
     // 	if (i->name. length())
-    // 		RegSetValueEx(hKeybase, name.c_str(), 0, REG_SZ, (uint8_t
+    // 		RegSetValueEx(hKeybase, name.c_str(), 0, REG_SZ,
+    // (uint8_t
     // *) i->name.c_str(), (unsigned long) i->name.length() ); 	name =
     // "DevWhite#" + devID; 	RegSetValueEx(hKeybase, name.c_str(), 0,
     // REG_unsigned long, (uint8_t *) &i->white.ci, sizeof(unsigned long));
@@ -1331,10 +1312,10 @@ void Mappings::SaveMappings(bool print) {
     // 		string name = "Light" + to_string(i->devID) + "-" +
     // to_string(cl->lightid); 		RegCreateKey(hKeybase,
     // name.c_str(), &hKeyStore); 		RegSetValueEx(hKeyStore, "Name",
-    // 0, REG_SZ, (uint8_t*)cl->name.c_str(), (unsigned long)cl->name.length());
-    // 		RegSetValueEx(hKeyStore, "Flags", 0, REG_unsigned long,
-    // (uint8_t*)&cl->data, sizeof(unsigned long));
-    // RegCloseKey(hKeyStore);
+    // 0, REG_SZ, (uint8_t*)cl->name.c_str(), (unsigned
+    // long)cl->name.length()); 		RegSetValueEx(hKeyStore,
+    // "Flags", 0, REG_unsigned long, (uint8_t*)&cl->data, sizeof(unsigned
+    // long)); RegCloseKey(hKeyStore);
     // 	}
     // }
     //
@@ -1353,12 +1334,12 @@ void Mappings::SaveMappings(bool print) {
     // 	string name = "Grid" + to_string(i->id);
     // 	RegCreateKey(hKeybase, name. c_str(), &hKeyStore);
     // 	RegSetValueEx(hKeyStore, "Name", 0, REG_SZ,
-    // (uint8_t*)i->name.c_str(), (unsigned long)i->name.length()); 	unsigned
-    // long sizes =
+    // (uint8_t*)i->name.c_str(), (unsigned long)i->name.length());
+    // unsigned long sizes =
     // ((unsigned long)i->x << 8) | i->y; 	RegSetValueEx(hKeyStore, "Size",
     // 0, REG_unsigned long, (uint8_t*)&sizes, sizeof(unsigned long));
-    // RegSetValueEx(hKeyStore, "Grid", 0, REG_BINARY, (uint8_t*)i->grid, i->x *
-    // i->y * sizeof(unsigned long)); RegCloseKey(hKeyStore);
+    // RegSetValueEx(hKeyStore, "Grid", 0, REG_BINARY, (uint8_t*)i->grid,
+    // i->x * i->y * sizeof(unsigned long)); RegCloseKey(hKeyStore);
     // }
     //
     // RegCloseKey(hKeybase);
