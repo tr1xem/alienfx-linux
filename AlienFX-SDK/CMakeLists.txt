@@ -1,63 +1,45 @@
 cmake_minimum_required(VERSION 3.16)
-project(AlienFX_SDK LANGUAGES CXX)
+project(AlienFX_SDK LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_C_STANDARD 23)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(FetchContent)
-find_package(PkgConfig REQUIRED)
+set(BUILD_SHARED_LIBS OFF)
 
 # ----------- LIBUSB ------------
 
-pkg_check_modules(LIBUSB libusb-1.0)
-if(NOT LIBUSB_FOUND)
-    message(STATUS "libusb-1.0 not found, fetching from GitHub...")
-    FetchContent_Declare(libusb
-        GIT_REPOSITORY "https://github.com/libusb/libusb.git"
-        GIT_TAG "master"
-        GIT_SHALLOW TRUE
-    )
-    FetchContent_MakeAvailable(libusb)
-    set(LIBUSB_LIBRARIES libusb-1.0)
-    set(LIBUSB_INCLUDE_DIRS ${libusb_SOURCE_DIR}/libusb)
-else()
-    message(STATUS "Found system libusb-1.0")
-endif()
+FetchContent_Declare(
+  libusb
+  GIT_REPOSITORY https://github.com/libusb/libusb-cmake.git
+  GIT_TAG main
+  GIT_SHALLOW TRUE)
+FetchContent_MakeAvailable(libusb)
 
 # ----------- LOGURU ------------
 
-pkg_check_modules(LOGURU loguru)
-if(NOT LOGURU_FOUND)
-    message(STATUS "loguru not found, fetching from GitHub...")
-    FetchContent_Declare(LoguruGitRepo
-        GIT_REPOSITORY "https://github.com/emilk/loguru"
-        GIT_TAG "master"
-        GIT_SHALLOW TRUE
-    )
-    set(LOGURU_WITH_STREAMS TRUE)
-    FetchContent_MakeAvailable(LoguruGitRepo)
-    set(LOGURU_LIBRARIES loguru::loguru)
-    set(LOGURU_INCLUDE_DIRS ${LoguruGitRepo_SOURCE_DIR})
-endif()
+FetchContent_Declare(
+  LoguruGitRepo
+  GIT_REPOSITORY https://github.com/emilk/loguru.git
+  GIT_TAG master
+  GIT_SHALLOW TRUE)
+set(LOGURU_WITH_STREAMS ON)
+FetchContent_MakeAvailable(LoguruGitRepo)
 
 # ----------- HIDAPI ------------
 
-pkg_check_modules(HIDAPI hidapi-libusb)
-if(NOT HIDAPI_FOUND)
-    message(STATUS "hidapi not found, fetching from GitHub...")
-    FetchContent_Declare(hidapi
-        GIT_REPOSITORY https://github.com/libusb/hidapi.git
-        GIT_TAG master
-        GIT_SHALLOW TRUE
-    )
-    FetchContent_MakeAvailable(hidapi)
+set(HIDAPI_WITH_LIBUSB ON)
+set(HIDAPI_WITH_HIDRAW OFF)
 
-    # hidapi provides multiple targets; pick hidraw on Linux
-    set(HIDAPI_LIBRARIES hidapi-libusb)
-    set(HIDAPI_INCLUDE_DIRS ${hidapi_SOURCE_DIR}/hidapi)
-else()
-    message(STATUS "Found system hidapi")
-endif()
+FetchContent_Declare(
+  hidapi
+  GIT_REPOSITORY https://github.com/libusb/hidapi.git
+  GIT_TAG master
+  GIT_SHALLOW TRUE)
+FetchContent_MakeAvailable(hidapi)
+
+# target_compile_definitions(${tgt} PRIVATE _GNU_SOURCE)
 
 # ----------- SDK SOURCES ------------
 
@@ -66,17 +48,6 @@ file(GLOB_RECURSE SDK_SOURCES CONFIGURE_DEPENDS src/*.cpp)
 add_library(AlienFX_SDK STATIC ${SDK_SOURCES})
 
 target_include_directories(AlienFX_SDK
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${LIBUSB_INCLUDE_DIRS}
-        ${LOGURU_INCLUDE_DIRS}
-        ${HIDAPI_INCLUDE_DIRS}
-)
+                           PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-target_link_libraries(AlienFX_SDK
-    PUBLIC
-        ${LIBUSB_LIBRARIES}
-        ${LOGURU_LIBRARIES}
-        ${HIDAPI_LIBRARIES}
-)
-
+target_link_libraries(AlienFX_SDK PUBLIC usb-1.0 hidapi::libusb loguru::loguru)

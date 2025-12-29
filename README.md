@@ -53,8 +53,6 @@ Some notebooks can have 2 devices - APIv4 (for logo, power button, etc) and APIv
 
 - cmake
 - ninja
-- libusb
-- hidapi
 
 ## Build
 
