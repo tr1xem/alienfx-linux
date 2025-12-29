@@ -26,7 +26,7 @@ int main() {
             if (afx_map.fxdevs[i].vid == 0x187c) {
                 std::vector<AlienFX_SDK::Afx_action> action_zone{};
                 action_zone.push_back(
-                    {AlienFX_SDK::AlienFX_A_Breathing, 2, 64, 255, 255, 255});
+                    {AlienFX_SDK::AlienFX_A_Breathing, 2, 64, 0, 255, 255});
                 action_zone.push_back(
                     {AlienFX_SDK::AlienFX_A_Breathing, 2, 64, 0, 0, 0});
                 // action_zone.push_back(
