@@ -43,15 +43,11 @@ int main() {
             if (afx_map.fxdevs[i].vid == 0x0d62) {
                 std::vector<AlienFX_SDK::Afx_action> action_zone;
                 action_zone.push_back(
-                    {AlienFX_SDK::AlienFX_A_Color, 2, 64, 255, 0, 0});
-                // action_zone.push_back(
-                //     {AlienFX_SDK::AlienFX_A_Spectrum, 2, 64, 0, 255, 0});
-                // action_zone.push_back(
-                //     {AlienFX_SDK::AlienFX_A_Spectrum, 2, 64, 0, 0, 255});
+                    {AlienFX_SDK::AlienFX_A_Color, 2, 64, 255, 255, 255});
                 std::vector<AlienFX_SDK::Afx_lightblock> lights;
 
-                // lights.push_back({0, action_zone});
-                for (uint8_t idx = 0; idx <= 106; ++idx) {
+                // NOTE: 106 is max lights, but 105 is the last light
+                for (uint8_t idx = 0; idx <= 105; ++idx) {
                     // lights.push_back({idx, action_zone});
                     lights.push_back({static_cast<uint8_t>(idx), action_zone});
                 }

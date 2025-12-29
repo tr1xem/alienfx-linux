@@ -371,9 +371,8 @@ void Functions::AddV8DataBlock(uint8_t bPos, vector<Afx_icommand> *mods,
 
 void Functions::AddV5DataBlock(uint8_t bPos, vector<Afx_icommand> *mods,
                                uint8_t index, Afx_action *c) {
-    // mods->push_back({bPos, {(uint8_t)(index + 1), c->r, c->g, c->b}});
-    // FIXME: Index + 1 makes 0 index light to be ignored
-    mods->push_back({bPos, {(uint8_t)(index + 0), c->r, c->g, c->b}});
+    // NOTE: +1 because parts start from 1 ,0 is for reset? ig
+    mods->push_back({bPos, {(uint8_t)(index + 1), c->r, c->g, c->b}});
 }
 
 bool Functions::SetMultiColor(vector<uint8_t> *lights, Afx_action c) {
