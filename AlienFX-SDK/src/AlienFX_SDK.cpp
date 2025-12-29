@@ -4,7 +4,7 @@
 #include "libusb_helper.h"
 #include <cstdint>
 #include <cstring>
-#include <hidapi/hidapi_libusb.h>
+#include <hidapi_libusb.h>
 #include <iomanip>
 #include <iostream>
 #include <loguru.hpp>
@@ -1050,12 +1050,11 @@ bool Mappings::AlienFXEnumDevices(void *acc) {
         dev = new Functions();
         // NOTE: Deduplicate devices with same path
         if (seen_paths.count(cur_dev->path)) {
-            // #ifdef DEBUG
-            // LOG_S(INFO) << "Skipping duplicate device - VID: 0x" << std::hex
-            //             << cur_dev->vendor_id << ", PID: 0x"
-            //             << cur_dev->product_id << ", Path: " <<
-            //             cur_dev->path;
-            // #endif
+#ifdef DEBUG
+            LOG_S(INFO) << "Skipping duplicate device - VID: 0x" << std::hex
+                        << cur_dev->vendor_id << ", PID: 0x"
+                        << cur_dev->product_id << ", Path: " << cur_dev->path;
+#endif
             cur_dev = cur_dev->next;
             continue;
         }

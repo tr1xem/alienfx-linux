@@ -26,11 +26,11 @@ int main() {
             if (afx_map.fxdevs[i].vid == 0x187c) {
                 std::vector<AlienFX_SDK::Afx_action> action_zone{};
                 action_zone.push_back(
-                    {AlienFX_SDK::AlienFX_A_Spectrum, 2, 64, 255, 0, 0});
+                    {AlienFX_SDK::AlienFX_A_Breathing, 2, 64, 255, 255, 255});
                 action_zone.push_back(
-                    {AlienFX_SDK::AlienFX_A_Spectrum, 2, 64, 0, 255, 0});
-                action_zone.push_back(
-                    {AlienFX_SDK::AlienFX_A_Spectrum, 2, 64, 0, 0, 255});
+                    {AlienFX_SDK::AlienFX_A_Breathing, 2, 64, 0, 0, 0});
+                // action_zone.push_back(
+                //     {AlienFX_SDK::AlienFX_A_Spectrum, 2, 64, 0, 0, 255});
                 std::vector<AlienFX_SDK::Afx_lightblock> lights;
                 lights.push_back({0, action_zone});
                 lights.push_back({1, action_zone});
@@ -38,8 +38,7 @@ int main() {
                 lights.push_back({3, action_zone});
                 afx_map.fxdevs[i].dev->SetMultiAction(&lights, true);
                 afx_map.fxdevs[i].dev->UpdateColors();
-                LOG_S(WARNING)
-                    << "Alienware device are now Cyan" << i << "... ";
+                LOG_S(WARNING) << "Alienware device are now Cyan... ";
             }
             if (afx_map.fxdevs[i].vid == 0x0d62) {
                 std::vector<AlienFX_SDK::Afx_action> action_zone;
