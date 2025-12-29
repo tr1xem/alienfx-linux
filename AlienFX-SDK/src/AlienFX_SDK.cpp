@@ -178,16 +178,19 @@ bool Functions::AlienFXProbeDevice(libusb_context *ctxx, unsigned short vidd,
                                    unsigned short pidd, char *pathh) {
     version = API_UNKNOWN;
     length = GetMaxPacketSize(ctxx, vidd, pidd);
+    // NOTE: all lengths are +1 in windows than linux
+    // Reason: ask hid devs?
+    int checker = length + 1;
     switch (vidd) {
     case 0x0d62: // Darfon
-        switch (length) {
+        switch (checker) {
         case 65:
             version = API_V5;
             break;
         }
         break;
     case 0x187c: // Alienware
-        switch (length) {
+        switch (checker) {
         case 9:
             version = API_V2;
             break;
@@ -205,7 +208,7 @@ bool Functions::AlienFXProbeDevice(libusb_context *ctxx, unsigned short vidd,
         }
         break;
     default:
-        if (length == 65)
+        if (checker == 65)
             switch (vidd) {
             case 0x0424: // Microchip
                 if (pidd != 0x274c)
@@ -223,11 +226,6 @@ bool Functions::AlienFXProbeDevice(libusb_context *ctxx, unsigned short vidd,
     if (version == API_UNKNOWN) {
         // LOG_S(ERROR) << "Device not found";
         return false;
-    }
-    // NOTE: TO compensate for hidapi making it length-1 if report id is not
-    // zero
-    if (reportIDList[version] != 0) {
-        length--;
     }
     vid = vidd;
     pid = pidd;

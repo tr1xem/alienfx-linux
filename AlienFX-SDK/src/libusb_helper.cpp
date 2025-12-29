@@ -83,8 +83,8 @@ int GetMaxPacketSize(libusb_context *ctxx, unsigned short vidd,
                     // NOTE: Check the max packet size for IN endpoint
                     if ((e.bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK) ==
                         LIBUSB_ENDPOINT_IN) {
-                        // NOTE: size+1 for report ID
-                        maxPacketSize = (e.wMaxPacketSize & 0x07FF) + 1;
+                        // FIXME: size+1 for report ID not needed in linux?
+                        maxPacketSize = (e.wMaxPacketSize & 0x07FF);
                         /*
                         LOG_S(INFO) << "VID: 0x" << std::hex << vidd << " PID:
                         0x"
