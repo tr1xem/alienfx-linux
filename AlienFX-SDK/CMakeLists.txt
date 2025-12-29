@@ -42,7 +42,7 @@ endif()
 
 # ----------- HIDAPI ------------
 
-pkg_check_modules(HIDAPI hidapi-hidraw hidapi-libusb)
+pkg_check_modules(HIDAPI hidapi-libusb)
 if(NOT HIDAPI_FOUND)
     message(STATUS "hidapi not found, fetching from GitHub...")
     FetchContent_Declare(hidapi
@@ -53,7 +53,7 @@ if(NOT HIDAPI_FOUND)
     FetchContent_MakeAvailable(hidapi)
 
     # hidapi provides multiple targets; pick hidraw on Linux
-    set(HIDAPI_LIBRARIES hidapi-hidraw)
+    set(HIDAPI_LIBRARIES hidapi-libusb)
     set(HIDAPI_INCLUDE_DIRS ${hidapi_SOURCE_DIR}/hidapi)
 else()
     message(STATUS "Found system hidapi")
