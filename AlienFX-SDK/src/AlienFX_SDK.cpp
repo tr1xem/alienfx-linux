@@ -4,6 +4,7 @@
 #include "libusb_helper.h"
 #include <cstdint>
 #include <cstring>
+#include <hidapi.h>
 #include <hidapi_libusb.h>
 #include <iomanip>
 #include <iostream>

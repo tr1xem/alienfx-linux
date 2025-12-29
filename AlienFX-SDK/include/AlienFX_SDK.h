@@ -1,5 +1,4 @@
 #pragma once
-#include "hidapi.h"
 #include <hidapi/hidapi_libusb.h>
 #include <libusb-1.0/libusb.h>
 #include <string>
@@ -134,9 +133,7 @@ enum Action {
 class Functions {
   private:
     hid_device *devHandle = nullptr; // USB device handle, NULL if not
-    // libusb_context *ctx = nullptr;             // USB context
-    void *ACPIdevice = nullptr; // ACPI device object pointer
-    // uint8_t out_ep = 0, in_ep = 0; // USB endpoints
+    void *ACPIdevice = nullptr;      // ACPI device object pointer
 
     bool inSet = false;
 

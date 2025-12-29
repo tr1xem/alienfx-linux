@@ -1,6 +1,5 @@
-#include "hidapi.h"
 #include <cstdint>
-#include <hidapi/hidapi_libusb.h>
+#include <hidapi.h>
 #include <libusb.h>
 #include <loguru.hpp>
 
