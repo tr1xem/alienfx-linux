@@ -335,7 +335,10 @@ bool Functions::UpdateColors() {
         //	GetDeviceStatus();
         //	break;
         case API_V5: {
-            inSet = !PrepareAndSend(COMMV5_update, {{4, {0x0, 0xff}}});
+            inSet = !PrepareAndSend(COMMV5_update);
+            // FIXME: Its like this in usbcap To Inspect
+            //
+            // inSet = !PrepareAndSend(COMMV5_update, {{4, {0x0, 0xff}}});
         } break;
         case API_V4: {
             inSet = !PrepareAndSend(COMMV4_control);
