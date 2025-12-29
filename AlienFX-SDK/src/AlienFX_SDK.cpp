@@ -223,6 +223,11 @@ bool Functions::AlienFXProbeDevice(libusb_context *ctxx, unsigned short vidd,
             }
     }
 
+    // NOTE: Add +1 for device which dont have reportid as its nulled out in
+    // hidapi
+    if (reportIDList[version] == 0) {
+        length++;
+    }
     if (version == API_UNKNOWN) {
         // LOG_S(ERROR) << "Device not found";
         return false;
