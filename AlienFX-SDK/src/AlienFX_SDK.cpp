@@ -1,6 +1,5 @@
 #include "AlienFX_SDK.h"
 #include "alienfx_control.h"
-#include "libusb.h"
 #include "libusb_helper.h"
 #include <cstdint>
 #include <cstring>
@@ -8,6 +7,7 @@
 #include <hidapi_libusb.h>
 #include <iomanip>
 #include <iostream>
+#include <libusb.h>
 #include <loguru.hpp>
 #include <unistd.h>
 #include <unordered_set>
