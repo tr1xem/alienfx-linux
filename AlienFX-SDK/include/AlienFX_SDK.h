@@ -1,5 +1,5 @@
 #pragma once
-#include <hidapi/hidapi_libusb.h>
+#include <hidapi_libusb.h>
 #include <libusb.h>
 #include <string>
 #include <vector>
