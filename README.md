@@ -69,6 +69,8 @@ It would build 3 executables:
 - `Example-App` - sample application
 - `alienfx-cli` - command line tool for testing and configuring lights
 
-## Docs
-
-SOON™
+# Credits
+- [T-Troll](https://github.com/T-Troll) - for original sdk and resources
+- [StromyCoder](https://github.com/StormyCoder) - for testing in m18 r2
+- # [ZackSM](https://github.com/valtasar27) - for testing m18 r1
+<small> bro wanted his name big </small> 
