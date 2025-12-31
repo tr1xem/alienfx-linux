@@ -1,15 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
 project(
-  alienfx_cli
+  AlienFan_SDK
   LANGUAGES CXX
-  VERSION 0.0.2)
+  VERSION 0.0.1)
 add_compile_definitions(VERSION="${PROJECT_VERSION}")
 
-# target_compile_features(alienfx_cli PUBLIC cxx_std_23)
-
 file(GLOB_RECURSE CLI_SOURCES CONFIGURE_DEPENDS src/*.cpp)
-add_executable(alienfx_cli ${CLI_SOURCES})
+add_library(AlienFan_SDK STATIC ${CLI_SOURCES})
 
-target_include_directories(alienfx_cli
+target_include_directories(AlienFan_SDK
                            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(alienfx_cli PRIVATE AlienFX_SDK AlienFan_SDK)
+target_link_libraries(AlienFan_SDK PUBLIC loguru::loguru)

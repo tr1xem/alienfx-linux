@@ -1,21 +1,24 @@
+#include "AlienFan-SDK.h"
 #include "const.h"
 #include "loguru.hpp"
 #include <iostream>
+#include <map>
 #include <stdio.h>
 
 #define ARRAYSIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 using namespace std;
 static AlienFX_SDK::Mappings afx_map;
+static AlienFan_SDK::Control fan;
 uint8_t globalBright = 255;
 uint8_t sleepy = 5, longer = 5;
 int devType = -1;
 
 void printUsage() {
     printf("Usage: alienfx-cli [command=option,option,option] ... "
-           "[loop]\nCommands:\tOptions:\n");
+           "[loop]\nCommands:\t\tOptions:\n");
     for (int i = 0; i < ARRAYSIZE(commands); i++)
-        printf("%s\t%s.\n", commands[i].name, commands[i].desc);
+        printf("%s\t\t%s.\n", commands[i].name, commands[i].desc);
     printf("\nProbe argument (can be combined):\n\
 \tl - Define number of lights\n\
 \td - DeviceID and optionally LightID.\n\
@@ -23,6 +26,7 @@ Zones:\tleft, right, middle_right,middle_left or ID of the Group (low-level).\n\
 Actions:color (disable action), pulse, morph,\n\
 \tbreath, spectrum, rainbow (low-level only).\n\
 \tUp to 9 colors can be entered.\n\
+Profiles: custom, balanced, quiet, balanced-performance, performance, cool, low-power.\n\
 Modes: 1 - global, 2 - keypress.\n");
 }
 
@@ -94,11 +98,12 @@ vector<AlienFX_SDK::Afx_action> ParseActions(vector<ARG> *args, int startPos) {
 }
 
 int main(int argc, char *argv[]) {
-    LOG_F(INFO, "alienfx-cli v%s", VERSION);
+    printf("alienfx-cli v%s\n", VERSION);
     if (argc < 2) {
         printUsage();
         return 0;
     }
+    fan.Probe();
 
     afx_map.LoadMappings();
     afx_map.AlienFXEnumDevices();
@@ -314,7 +319,7 @@ int main(int argc, char *argv[]) {
                      i++) {
                     LOG_F(INFO,
                           "Device #%d - %s, VID#%d, PID#%d, APIv%d, %d "
-                          "lights%s\n",
+                          "lights%s",
                           (int)(i - afx_map.fxdevs.begin()), i->name.c_str(),
                           i->vid, i->pid, i->version, (int)i->lights.size(),
                           i->present ? "" : " (inactive)");
@@ -470,6 +475,53 @@ int main(int argc, char *argv[]) {
                                 }
                             }
                         }
+                    }
+                }
+                break;
+            }
+            case COMMANDS::getpowerprofile: {
+                // getpowerprofile
+                string current = fan.GetPowerProfile().name;
+                cout << "Current power profile: " << current << std::endl;
+                break;
+            }
+
+            case COMMANDS::supportedpowerprofiles: {
+                // supportedpowerprofiles
+                cout << "Supported power profiles: " << std::endl;
+                for (auto i = fan.profiles.begin(); i != fan.profiles.end();
+                     i++) {
+                    cout << i->name << std::endl;
+                }
+                break;
+            }
+
+            case COMMANDS::setpowerprofile: {
+                if (!args.empty()) { // instead of args.size() > 1
+                    std::map<std::string, AlienFan_SDK::ALIENFAN_PROFILE>
+                        strToProfile = {
+                            {"custom", AlienFan_SDK::CUSTOM},
+                            {"balanced", AlienFan_SDK::BALANCED},
+                            {"quiet", AlienFan_SDK::QUIET},
+                            {"balanced-performance",
+                             AlienFan_SDK::BALANCED_PERFORMANCE},
+                            {"performance", AlienFan_SDK::PERFORMANCE},
+                            {"cool", AlienFan_SDK::COOL},
+                            {"low-power", AlienFan_SDK::LOW_POWER}};
+
+                    std::string argProfile = args[0].str;
+                    auto it = strToProfile.find(argProfile);
+                    if (it != strToProfile.end()) {
+                        if (fan.SetPowerProfile(it->second)) {
+                            std::cout << "Power profile set to " << argProfile
+                                      << std::endl;
+                        } else {
+                            std::cout << "Failed to set power profile to "
+                                      << argProfile << std::endl;
+                        }
+                    } else {
+                        std::cout << "Unknown profile: " << argProfile
+                                  << std::endl;
                     }
                 }
                 break;
