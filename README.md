@@ -4,7 +4,12 @@ Ported version of [AlienFX](https://github.com/T-Troll/alienfx-tools) for Linux,
 complete light support for most of the device dell produce.
 
 Check out `Example-App/` for a sample application.
-ALl testing applications are located in `alienfx-cli/` folder.
+All testing applications are located in `alienfx-cli/` folder.
+
+Tested on linux:
+- Alienware elc (g-series,alienware m series)
+- Darfon (alienware series)
+
 
 ## AlienFX-SDK
 
