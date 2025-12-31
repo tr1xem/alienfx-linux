@@ -235,7 +235,12 @@ bool Functions::AlienFXProbeDevice(libusb_context *ctxx, unsigned short vidd,
     vid = vidd;
     pid = pidd;
     path = pathh;
-    devHandle = hid_open(vid, pid, nullptr);
+    // NOTE: Open path should not hang kbd while testing it? else fallback
+    if (pathh)
+        devHandle = hid_open_path(pathh);
+    else
+        devHandle = hid_open(vid, pid, nullptr);
+
     if (!devHandle) {
         LOG_S(ERROR) << "Failed to open HID device VID:0x" << std::hex << vid
                      << " PID:0x" << pid;
@@ -262,7 +267,8 @@ bool Functions::AlienFXProbeDevice(libusb_context *ctxx, unsigned short vidd,
                 << std::setw(4) << std::setfill('0') << static_cast<int>(pidd)
                 << ", Version: " << std::dec
                 << version // switch back to decimal
-                << ", Length: " << length << ", Description: " << description;
+                << ", Length: " << std::dec << length
+                << ", Description: " << description;
 
 #endif
     return version != API_UNKNOWN;

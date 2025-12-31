@@ -58,7 +58,10 @@ enum COMMANDS {
     highlevel = 11,
     probe = 12,
     status = 13,
-    loop = 14
+    loop = 14,
+    setpowerprofile = 15,
+    getpowerprofile = 16,
+    supportedpowerprofiles = 17,
 };
 
 const COMMAND commands[]{
@@ -72,9 +75,8 @@ const COMMAND commands[]{
      "zone,action,r,g,b[,action,r,g,b] - set all zone lights and enable it's "
      "action",
      5},
-    // {COMMANDS::setpower, "setpower",
-    //  "dev,light,r,g,b,r2,g2,b2 - set power button colors (low-level only)",
-    //  8},
+    {COMMANDS::setpower, "setpower",
+     "dev,light,r,g,b,r2,g2,b2 - set power button colors (low-level only)", 8},
     {COMMANDS::settempo, "settempo",
      "tempo[,length] - set tempo and effect length for actions", 1},
     {COMMANDS::setdim, "setdim", "\t[dev,]br - set brightness level", 1},
@@ -86,5 +88,12 @@ const COMMAND commands[]{
      "\t[l][d][,lights][,devID[,lightID]] - probe lights and set names"},
     {COMMANDS::status, "status",
      "\tshows devices, lights and zones id's and names"},
+    {COMMANDS::setpowerprofile, "setpowerprofile",
+     "[profile] - set power profile (requires root)", 1},
+    {COMMANDS::getpowerprofile, "getpowerprofile", "get current power profile"},
+    {COMMANDS::supportedpowerprofiles, "supportedprofiles",
+     "get supported power profiles"},
     {COMMANDS::loop, "loop",
-     "\trepeat commands from start, until user press CTRL+c"}};
+     "\trepeat commands from start, until user press CTRL+c"},
+
+};

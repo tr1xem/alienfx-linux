@@ -11,6 +11,14 @@ Tested on linux:
 - Darfon (alienware series)
 
 
+## AlienFan-SDK
+
+Library for controlling fans and sensors of Alienware hardware.
+
+### Supported devices:
+
+Any Alienware/Dell G-series hardware with RGB lights from 2010 to 2025.
+
 ## AlienFX-SDK
 
 Better AlienFX/LightFX SDK than Dell official's one without any limitations:
