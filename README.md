@@ -72,7 +72,7 @@ Some notebooks can have 2 devices - APIv4 (for logo, power button, etc) and APIv
 ```bash
 mkdir build/
 cd build/
-cmake .. -G ninja
+cmake .. -G Ninja
 ninja
 ```
 
