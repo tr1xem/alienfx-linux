@@ -183,11 +183,7 @@ bool Functions::AlienFXProbeDevice(libusb_context *ctxx, unsigned short vidd,
     int checker = length + 1;
     switch (vidd) {
     case 0x0d62: // Darfon
-        switch (checker) {
-        case 65:
-            version = API_V5;
-            break;
-        }
+        version = API_V5;
         break;
     case 0x187c: // Alienware
         switch (checker) {

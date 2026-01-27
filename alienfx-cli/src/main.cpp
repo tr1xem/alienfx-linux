@@ -538,7 +538,9 @@ int main(int argc, char *argv[]) {
             }
             }
         }
+#ifdef DEBUG
         LOG_F(INFO, "Done.");
+#endif
     } else {
         LOG_F(ERROR, "Light devices not found, exiting!");
     }
