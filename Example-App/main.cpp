@@ -1,6 +1,7 @@
 #include "AlienFX_SDK.h"
 #include "loguru.hpp"
 #include <iostream>
+#include <unistd.h>
 
 int main() {
 
@@ -22,39 +23,39 @@ int main() {
             LOG_S(INFO) << "Testing device " << i << "... ";
             //
             // NOTE: SET KEYBOARD ZONE COLOR - Passed
-            //
+
             if (afx_map.fxdevs[i].vid == 0x187c) {
                 std::vector<AlienFX_SDK::Afx_action> action_zone{};
                 action_zone.push_back(
-                    {AlienFX_SDK::AlienFX_A_Breathing, 2, 64, 0, 255, 255});
+                    {AlienFX_SDK::AlienFX_A_Spectrum, 2, 64, 255, 0, 0});
                 action_zone.push_back(
-                    {AlienFX_SDK::AlienFX_A_Breathing, 2, 64, 0, 0, 0});
+                    {AlienFX_SDK::AlienFX_A_Spectrum, 2, 64, 0, 255, 0});
+                action_zone.push_back(
+                    {AlienFX_SDK::AlienFX_A_Spectrum, 2, 64, 0, 0, 255});
                 // action_zone.push_back(
-                //     {AlienFX_SDK::AlienFX_A_Spectrum, 2, 64, 0, 0, 255});
+                //     {AlienFX_SDK::AlienFX_A_Color, 2, 64, 255, 255, 255});
                 std::vector<AlienFX_SDK::Afx_lightblock> lights;
                 lights.push_back({0, action_zone});
                 lights.push_back({1, action_zone});
                 lights.push_back({2, action_zone});
                 lights.push_back({3, action_zone});
+                // lights.push_back({4, action_zone});
                 afx_map.fxdevs[i].dev->SetMultiAction(&lights, true);
                 afx_map.fxdevs[i].dev->UpdateColors();
-                LOG_S(WARNING) << "Alienware device are now Cyan... ";
+                LOG_S(WARNING) << "Alienware device are now rainbow... ";
             }
             if (afx_map.fxdevs[i].vid == 0x0d62) {
-                std::vector<AlienFX_SDK::Afx_action> action_zone;
+                std::vector<AlienFX_SDK::Afx_action> action_zone{};
                 action_zone.push_back(
-                    {AlienFX_SDK::AlienFX_A_Color, 2, 64, 255, 255, 255});
+                    {AlienFX_SDK::AlienFX_A_Color, 2, 64, 255, 0, 0});
+
                 std::vector<AlienFX_SDK::Afx_lightblock> lights;
-
-                // NOTE: 106 is max lights, but 105 is the last light
-                for (uint8_t idx = 0; idx <= 105; ++idx) {
-                    // lights.push_back({idx, action_zone});
-                    lights.push_back({static_cast<uint8_t>(idx), action_zone});
+                for (uint8_t led = 0; led < 0x88; led++) {
+                    lights.push_back({led, action_zone});
                 }
-
                 afx_map.fxdevs[i].dev->SetMultiAction(&lights, true);
                 afx_map.fxdevs[i].dev->UpdateColors();
-                LOG_S(WARNING) << "Darfon device are now Cyan" << i << "... ";
+                LOG_S(WARNING) << "Darfon device are now red... ";
             }
 
             // NOTE: Multicolor test - Passed
@@ -136,48 +137,42 @@ int main() {
 
             // NOTE: Brightness Test - Passed
             //
-            // AlienFX_SDK::Afx_light keyboard_zone1{.lightid = 0,
-            //                                       .flags = 0x0000,
-            //                                       .scancode = 0x0000,
-            //                                       .name = "Keyboard Zone1"};
             //
-            // AlienFX_SDK::Afx_light keyboard_zone2{.lightid = 1,
-            //                                       .flags = 0x0000,
-            //                                       .scancode = 0x0001,
-            //                                       .name = "Keyboard Zone2"};
+            // if (afx_map.fxdevs[i].vid == 0x0d62) {
+            //     for (uint8_t lid = 0x00; lid < 0x88; lid++) {
+            //         AlienFX_SDK::Afx_light l{.lightid = lid,
+            //                                  .flags = 0x0000,
+            //                                  .scancode = lid,
+            //                                  .name = "Keyboard LED" +
+            //                                          to_string(lid)};
+            //         afx_map.fxdevs[i].lights.push_back(l);
+            //     }
             //
-            // AlienFX_SDK::Afx_light keyboard_zone3{.lightid = 2,
-            //                                       .flags = 0x0000,
-            //                                       .scancode = 0x0002,
-            //                                       .name = "Keyboard Zone3"};
-            //
-            // AlienFX_SDK::Afx_light keyboard_zone4{.lightid = 3,
-            //                                       .flags = 0x0000,
-            //                                       .scancode = 0x0003,
-            //                                       .name = "Keyboard Zone4"};
-            //
-            // afx_map.fxdevs[i].lights.push_back(keyboard_zone1);
-            // afx_map.fxdevs[i].lights.push_back(keyboard_zone2);
-            // afx_map.fxdevs[i].lights.push_back(keyboard_zone3);
-            // afx_map.fxdevs[i].lights.push_back(keyboard_zone4);
-            // afx_map.SetDeviceBrightness(&afx_map.fxdevs[i], 255, false);
-
+            //     // afx_map.SetDeviceBrightness(&afx_map.fxdevs[i], 255,
+            //     true); afx_map.fxdevs[i].dev->SetBrightness(
+            //         0, 255, &afx_map.fxdevs[i].lights, false);
+            // }
             // NOTE: Multicolor test - Passed
             //
             // std::vector<unsigned char> lights{0, 1, 2, 3};
             // afx_map.fxdevs[i].dev->SetMultiColor(
-            //     &lights, {AlienFX_SDK::AlienFX_A_Color, 5, 64, 0, 255, 255});
+            //     &lights, {AlienFX_SDK::AlienFX_A_Color, 5,
+            //     64, 0, 255, 255});
 
             // NOTE: Single Color Test - Passed
             //
             // afx_map.fxdevs[i].dev->SetColor(
-            //     0, {AlienFX_SDK::AlienFX_A_Color, 5, 64, 255, 255, 255});
+            //     0, {AlienFX_SDK::AlienFX_A_Color, 5, 64, 255,
+            //     255, 255});
             // afx_map.fxdevs[i].dev->SetColor(
-            //     1, {AlienFX_SDK::AlienFX_A_Color, 5, 64, 255, 255, 255});
+            //     1, {AlienFX_SDK::AlienFX_A_Color, 5, 64, 255,
+            //     255, 255});
             // afx_map.fxdevs[i].dev->SetColor(
-            //     2, {AlienFX_SDK::AlienFX_A_Color, 5, 64, 255, 255, 255});
+            //     2, {AlienFX_SDK::AlienFX_A_Color, 5, 64, 255,
+            //     255, 255});
             // afx_map.fxdevs[i].dev->SetColor(
-            //     3, {AlienFX_SDK::AlienFX_A_Color, 5, 64, 255, 255, 255});
+            //     3, {AlienFX_SDK::AlienFX_A_Color, 5, 64, 255,
+            //     255, 255});
             // afx_map.fxdevs[i].dev->UpdateColors();
             // cout << "Now trying light 3 to mixed... ";
             // afx_map.fxdevs[i].dev->SetColor(3, {255, 255});
