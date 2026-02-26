@@ -124,11 +124,11 @@ int main(int argc, char* argv[]) {
         devType = 1;
         // NOTE: We doing this when we are on the light itself
         //  set brightness
-        //  for (auto &dev : afx_map.fxdevs) {
-        //      if (dev.present) {
-        //          afx_map.SetDeviceBrightness(&dev, 255, true);
-        //      }
-        //  }
+        for (auto& dev : afx_map.fxdevs) {
+            if (dev.present) {
+                afx_map.SetDeviceBrightness(&dev, 255, true);
+            }
+        }
     }
     LOG_F(INFO, "%d low-level devices found.", afx_map.activeDevices);
 
@@ -321,34 +321,33 @@ int main(int argc, char* argv[]) {
                 // if (devType) {
                 for (auto i = afx_map.fxdevs.begin(); i < afx_map.fxdevs.end();
                      i++) {
-                    LOG_F(INFO,
-                          "Device #%d - %s, VID#%d, PID#%d, APIv%d, %d "
-                          "lights%s",
-                          (int)(i - afx_map.fxdevs.begin()), i->name.c_str(),
-                          i->vid, i->pid, i->version, (int)i->lights.size(),
-                          i->present ? "" : " (inactive)");
+                    printf(
+                        "Device #%d - %s, VID#%d, PID#%d, APIv%d, %d "
+                        "lights%s \n",
+                        (int)(i - afx_map.fxdevs.begin()), i->name.c_str(),
+                        i->vid, i->pid, i->version, (int)i->lights.size(),
+                        i->present ? "" : " (inactive)");
 
                     for (int k = 0; k < i->lights.size(); k++) {
-                        LOG_F(INFO, "  Light ID#%d - %s%s%s\n",
-                              i->lights[k].lightid, i->lights[k].name.c_str(),
-                              (i->lights[k].flags & ALIENFX_FLAG_POWER)
-                                  ? " (Power button)"
-                                  : "",
-                              (i->lights[k].flags & ALIENFX_FLAG_INDICATOR)
-                                  ? " (Indicator)"
-                                  : "");
+                        printf("  Light ID#%d - %s%s%s\n", i->lights[k].lightid,
+                               i->lights[k].name.c_str(),
+                               (i->lights[k].flags & ALIENFX_FLAG_POWER)
+                                   ? " (Power button)"
+                                   : "",
+                               (i->lights[k].flags & ALIENFX_FLAG_INDICATOR)
+                                   ? " (Indicator)"
+                                   : "");
                     }
                 }
                 // }
                 // now groups...
                 if (afx_map.GetGroups()->size()) {
-                    LOG_F(INFO, "%d zones:\n",
-                          (int)afx_map.GetGroups()->size());
+                    printf("%d zones:\n", (int)afx_map.GetGroups()->size());
                     for (int i = 0; i < afx_map.GetGroups()->size(); i++) {
-                        LOG_F(INFO, "  Zone #%d (%d lights) - %s",
-                              (afx_map.GetGroups()->at(i).gid & 0xffff),
-                              (int)afx_map.GetGroups()->at(i).lights.size(),
-                              afx_map.GetGroups()->at(i).name.c_str());
+                        printf("  Zone #%d (%d lights) - %s",
+                               (afx_map.GetGroups()->at(i).gid & 0xffff),
+                               (int)afx_map.GetGroups()->at(i).lights.size(),
+                               afx_map.GetGroups()->at(i).name.c_str());
                     }
                 }
                 // } else {
