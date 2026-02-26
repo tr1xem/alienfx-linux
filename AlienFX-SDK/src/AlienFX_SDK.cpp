@@ -1239,6 +1239,7 @@ void Mappings::LoadMappings() {
                     Afx_light l{};
                     l.lightid = (std::uint8_t)jl.value("lightid", 0);
                     l.flags = (unsigned long)jl.value("flags", 0);
+                    l.scancode = (unsigned short)jl.value("scancode", 0);
                     l.name = jl.value("name", std::string{});
                     d.lights.push_back(std::move(l));
                 }
@@ -1316,8 +1317,12 @@ void Mappings::SaveMappings() {
 
         jd["lights"] = json::array();
         for (const auto& l : d.lights) {
-            jd["lights"].push_back(
-                {{"lightid", l.lightid}, {"flags", l.flags}, {"name", l.name}});
+            jd["lights"].push_back({
+                {"lightid", l.lightid},
+                {"flags", l.flags},
+                {"scancode", l.scancode},
+                {"name", l.name},
+            });
         }
 
         j["devices"].push_back(std::move(jd));
