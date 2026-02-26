@@ -1,7 +1,8 @@
 #pragma once
-#include "AlienFX_SDK.h"
 #include <cstdint>
 #include <string>
+
+#include "AlienFX_SDK.h"
 
 struct ARG {
     std::string str;
@@ -15,12 +16,12 @@ struct COMMAND {
 };
 
 struct ZONECODE {
-    const char *name;
+    const char* name;
     unsigned code;
 };
 
 struct ACTIONCODE {
-    const char *name;
+    const char* name;
     int afx_code;
 };
 
@@ -65,7 +66,7 @@ enum COMMANDS {
 };
 
 const COMMAND commands[]{
-    // {COMMANDS::setall, "setall", "\tr,g,b - set all lights", 3},
+    {COMMANDS::setall, "setall", "\tr,g,b - set all lights", 3},
     {COMMANDS::setone, "setone", "\tdev,light,r,g,b - set one light", 5},
     {COMMANDS::setzone, "setzone", "\tzone,r,g,b - set zone lights", 4},
     {COMMANDS::setaction, "setaction",

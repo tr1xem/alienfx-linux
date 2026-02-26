@@ -1,6 +1,7 @@
 #pragma once
 #include <hidapi_libusb.h>
 #include <libusb.h>
+
 #include <string>
 #include <vector>
 
@@ -28,17 +29,18 @@ namespace AlienFX_SDK {
 #define ALIENFX_V5_INCOMMAND 0xcc
 
 // Mapping flags:
-#define ALIENFX_FLAG_POWER 1     // This is power button
-#define ALIENFX_FLAG_INDICATOR 2 // This is indicator light (keep at lights off)
+#define ALIENFX_FLAG_POWER 1  // This is power button
+#define ALIENFX_FLAG_INDICATOR \
+    2  // This is indicator light (keep at lights off)
 
 // Maximal buffer size across all device types
 #define MAX_BUFFERSIZE 193
 
-union Afx_colorcode // Atomic color structure
+union Afx_colorcode  // Atomic color structure
 {
     struct {
         uint8_t b, g, r;
-        uint8_t br; // Brightness
+        uint8_t br;  // Brightness
     };
     unsigned long ci;
 };
@@ -47,7 +49,7 @@ struct Afx_icommand {
     int i;
     vector<uint8_t> vval;
 };
-struct Afx_light { // Light information block
+struct Afx_light {  // Light information block
     uint8_t lightid;
     union {
         struct {
@@ -66,56 +68,56 @@ union Afx_groupLight {
     unsigned long lgh;
 };
 
-struct Afx_group { // Light group information block
+struct Afx_group {  // Light group information block
     unsigned long gid;
     std::string name;
     std::vector<Afx_groupLight> lights;
 };
 enum Afx_Version {
-    API_ACPI = 0, // 128
+    API_ACPI = 0,  // 128
     //	API_V9 = 9, //193
-    API_V8 = 8, // 65
-    API_V7 = 7, // 65
-    API_V6 = 6, // 65
-    API_V5 = 5, // 64
-    API_V4 = 4, // 34
-    API_V3 = 3, // 12
-    API_V2 = 2, // 9
+    API_V8 = 8,  // 65
+    API_V7 = 7,  // 65
+    API_V6 = 6,  // 65
+    API_V5 = 5,  // 64
+    API_V4 = 4,  // 34
+    API_V3 = 3,  // 12
+    API_V2 = 2,  // 9
     API_UNKNOWN = -1
 };
 
-struct Afx_device { // Single device data
+struct Afx_device {  // Single device data
     union {
         struct {
-            unsigned short pid, vid; // IDs
+            unsigned short pid, vid;  // IDs
         };
         unsigned long devID;
     };
-    Functions *dev = nullptr;              // device control object pointer
-    std::string name;                      // device name
-    int version = API_UNKNOWN;             // API version used for this device
-    Afx_colorcode white = {255, 255, 255}; // white balance
-    uint8_t brightness = 255;              // global device brightness
-    std::vector<Afx_light> lights;         // vector of lights defined
+    Functions* dev = nullptr;               // device control object pointer
+    std::string name;                       // device name
+    int version = API_UNKNOWN;              // API version used for this device
+    Afx_colorcode white = {255, 255, 255};  // white balance
+    uint8_t brightness = 255;               // global device brightness
+    std::vector<Afx_light> lights;          // vector of lights defined
     bool arrived = false,
-         present = false; // for newly arrived and present devices
+         present = false;  // for newly arrived and present devices
 };
 
 struct Afx_grid {
     uint8_t id;
     uint8_t x, y;
     std::string name;
-    Afx_groupLight *grid;
+    Afx_groupLight* grid;
 };
 
-struct Afx_action {  // atomic light action phase
-    uint8_t type;    // one of Action values - action type
-    uint8_t time;    // How long this phase stay
-    uint8_t tempo;   // How fast it should transform
-    uint8_t r, g, b; // phase color
+struct Afx_action {   // atomic light action phase
+    uint8_t type;     // one of Action values - action type
+    uint8_t time;     // How long this phase stay
+    uint8_t tempo;    // How fast it should transform
+    uint8_t r, g, b;  // phase color
 };
 
-struct Afx_lightblock { // light action block
+struct Afx_lightblock {  // light action block
     uint8_t index;
     std::vector<Afx_action> act;
 };
@@ -131,40 +133,40 @@ enum Action {
 };
 
 class Functions {
-  private:
-    hid_device *devHandle = nullptr; // USB device handle, NULL if not
-    void *ACPIdevice = nullptr;      // ACPI device object pointer
+   private:
+    hid_device* devHandle = nullptr;  // USB device handle, NULL if not
+    void* ACPIdevice = nullptr;       // ACPI device object pointer
 
     bool inSet = false;
 
-    int length = -1;   // HID report length
-    uint8_t chain = 1; // seq. number for APIv1-v3
+    int length = -1;    // HID report length
+    uint8_t chain = 1;  // seq. number for APIv1-v3
 
     // support function for mask-based devices (v1-v3, v6)
-    vector<Afx_icommand> *SetMaskAndColor(vector<Afx_icommand> *mods,
-                                          Afx_lightblock *act,
+    vector<Afx_icommand>* SetMaskAndColor(vector<Afx_icommand>* mods,
+                                          Afx_lightblock* act,
                                           bool needInverse = false,
                                           unsigned long index = 0);
 
     // Support function to send data to USB device
-    bool PrepareAndSend(const uint8_t *command, vector<Afx_icommand> mods);
-    bool PrepareAndSend(const uint8_t *command,
-                        vector<Afx_icommand> *mods = NULL);
+    bool PrepareAndSend(const uint8_t* command, vector<Afx_icommand> mods);
+    bool PrepareAndSend(const uint8_t* command,
+                        vector<Afx_icommand>* mods = NULL);
 
     // Add new light effect block for v8
-    inline void AddV8DataBlock(uint8_t bPos, vector<Afx_icommand> *mods,
-                               Afx_lightblock *act);
+    inline void AddV8DataBlock(uint8_t bPos, vector<Afx_icommand>* mods,
+                               Afx_lightblock* act);
 
     // Add new color block for v5
-    inline void AddV5DataBlock(uint8_t bPos, vector<Afx_icommand> *mods,
-                               uint8_t index, Afx_action *act);
+    inline void AddV5DataBlock(uint8_t bPos, vector<Afx_icommand>* mods,
+                               uint8_t index, Afx_action* act);
 
     // Support function to send whole power block for v1-v3
-    void SavePowerBlock(uint8_t blID, Afx_lightblock *act, bool needSave,
+    void SavePowerBlock(uint8_t blID, Afx_lightblock* act, bool needSave,
                         bool needSecondary = false, bool needInverse = false);
 
     // Support function for APIv4 action set
-    bool SetV4Action(Afx_lightblock *act);
+    bool SetV4Action(Afx_lightblock* act);
 
     // return current device state
     uint8_t GetDeviceStatus();
@@ -175,18 +177,18 @@ class Functions {
     // After-reset delay for APIv1-v3
     uint8_t WaitForBusy();
 
-  public:
+   public:
     union {
         struct {
-            unsigned short pid, vid; // Device IDs
-            char *path;              // Device path
+            unsigned short pid, vid;  // Device IDs
+            char* path;               // Device path
         };
         unsigned long devID;
     };
-    int version = API_UNKNOWN; // interface version, will stay at API_UNKNOWN if
-                               // not initialized
-    uint8_t bright = 64;       // Last brightness set for device
-    string description;        // device description
+    int version = API_UNKNOWN;  // interface version, will stay at API_UNKNOWN
+                                // if not initialized
+    uint8_t bright = 64;  // Last brightness set for device
+    string description;   // device description
 
     // Functions(libusb_context *ctxx) : ctx(ctxx) {};
     ~Functions();
@@ -201,8 +203,8 @@ class Functions {
     // Check device and initialize data
     // vid/pid the same as above
     // Returns true if device found and initialized.
-    bool AlienFXProbeDevice(libusb_context *ctxx, unsigned short vidd = 0,
-                            unsigned short pidd = 0, char *pathh = 0);
+    bool AlienFXProbeDevice(libusb_context* ctxx, unsigned short vidd = 0,
+                            unsigned short pidd = 0, char* pathh = 0);
 
     // Prepare to set lights
     bool Reset();
@@ -219,21 +221,21 @@ class Functions {
     // Set multiply lights to the same color. This only works for some API
     // devices, and emulated for other ones. lights - pointer to vector of light
     // IDs need to be set. c - color to set
-    bool SetMultiColor(vector<uint8_t> *lights, Afx_action c);
+    bool SetMultiColor(vector<uint8_t>* lights, Afx_action c);
 
     // Set multiply lights to different color.
     // act - pointer to vector of light control blocks (each define one light)
     // store - need to save settings into device memory (v1-v4)
-    bool SetMultiAction(vector<Afx_lightblock> *act, bool store = false);
+    bool SetMultiAction(vector<Afx_lightblock>* act, bool store = false);
 
     // Set color to action
     // index - light ID
     // act - pointer to light actions vector
-    bool SetAction(Afx_lightblock *act);
+    bool SetAction(Afx_lightblock* act);
 
     // Set action for Power button and store other light colors as default
     // act - pointer to vector of light control blocks
-    bool SetPowerAction(vector<Afx_lightblock> *act, bool save = false);
+    bool SetPowerAction(vector<Afx_lightblock>* act, bool save = false);
 
     // Hardware brightness for device, if supported
     // brightness - desired brightness (0 - off, 255 - full)
@@ -241,7 +243,7 @@ class Functions {
     // mappings - mappings list for v4 brightness set (it require light IDs
     // list) power - if true, power and indicator lights will be set too
     bool SetBrightness(uint8_t brightness, uint8_t gbr,
-                       vector<Afx_light> *mappings, bool power);
+                       vector<Afx_light>* mappings, bool power);
 
     // Global (whole device) effect control for APIv5, v8
     // effType - effect type
@@ -262,77 +264,77 @@ class Functions {
 };
 
 class Mappings {
-  private:
-    std::vector<Afx_group> groups; // Defined light groups
-    std::vector<Afx_grid> grids;   // Grid zones info
-    libusb_context *ctx = nullptr;
+   private:
+    std::vector<Afx_group> groups;  // Defined light groups
+    std::vector<Afx_grid> grids;    // Grid zones info
+    libusb_context* ctx = nullptr;
 
-  public:
-    vector<Afx_device> fxdevs; // main devices/mappings array
-    unsigned activeLights = 0, // total number of active lights into the system
-        activeDevices = 0;     // total number of active devices
-    bool deviceListChanged = false; // Is list changed after last device scan?
+   public:
+    vector<Afx_device> fxdevs;  // main devices/mappings array
+    unsigned activeLights = 0,  // total number of active lights into the system
+        activeDevices = 0;      // total number of active devices
+    bool deviceListChanged = false;  // Is list changed after last device scan?
 
     Mappings();
     ~Mappings();
 
     // Update device info after it found into the system
-    void AlienFxUpdateDevice(Functions *dev);
+    void AlienFxUpdateDevice(Functions* dev);
 
     // Enumerate all alienware devices into the system
     // acc - link to AlienFan_SDK::Control object for ACPI lights
     // returns true if light device list was changed
-    bool AlienFXEnumDevices(void *acc = NULL);
+    bool AlienFXEnumDevices(void* acc = NULL);
 
     // load light names from registry
     void LoadMappings();
 
     // save light names into registry
-    void SaveMappings(bool print = false);
+    void SaveMappings();
 
     // Set device brightness
     // dev - point to AFX device info
     // br - brightness level
     // power - set power/indicator lights too
-    bool SetDeviceBrightness(Afx_device *dev, uint8_t br, bool power);
+    bool SetDeviceBrightness(Afx_device* dev, uint8_t br, bool power);
 
     // get saved light structure by device ID and light ID
-    Afx_light *GetMappingByID(unsigned short pid, unsigned short vid);
+    Afx_light* GetMappingByID(unsigned short pid, unsigned short vid);
 
     // get defined groups vector
-    vector<Afx_group> *GetGroups();
+    vector<Afx_group>* GetGroups();
 
     // get defined grids vector
-    vector<Afx_grid> *GetGrids() { return &grids; };
+    vector<Afx_grid>* GetGrids() { return &grids; };
 
     // get grid object by it's ID
-    Afx_grid *GetGridByID(uint8_t id);
+    Afx_grid* GetGridByID(uint8_t id);
 
     // get device structure by PID/VID.
     // VID can be zero for any VID
-    Afx_device *GetDeviceById(unsigned short pid, unsigned short vid = 0);
+    Afx_device* GetDeviceById(unsigned short pid, unsigned short vid = 0);
 
     // get device by VID/PID unsigned long.
-    Afx_device *GetDeviceById(unsigned long devID);
+    Afx_device* GetDeviceById(unsigned long devID);
 
     // get or add device structure by PID/VID
     // VID can be zero for any VID
-    Afx_device *AddDeviceById(unsigned long devID);
+    Afx_device* AddDeviceById(unsigned long devID);
 
     // find light mapping into device structure by light ID
-    Afx_light *GetMappingByDev(Afx_device *dev, unsigned short LightID);
+    Afx_light* GetMappingByDev(Afx_device* dev, unsigned short LightID);
 
     // find light group by it's ID
-    Afx_group *GetGroupById(unsigned long gid);
+    Afx_group* GetGroupById(unsigned long gid);
 
     // remove light mapping from device by id
-    void RemoveMapping(Afx_device *dev, unsigned short lightID);
+    void RemoveMapping(Afx_device* dev, unsigned short lightID);
 
     // get light flags (Power, indicator, etc) from light structure
-    int GetFlags(Afx_device *dev, unsigned short lightid);
+    int GetFlags(Afx_device* dev, unsigned short lightid);
 
     // get light flags (Power, indicator) by PID
     int GetFlags(unsigned short pid, unsigned short lightid);
 };
 
-} // namespace AlienFX_SDK
+}  // namespace AlienFX_SDK
