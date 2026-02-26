@@ -17,7 +17,7 @@ Library for controlling fans and sensors of Alienware hardware.
 
 ### Supported devices:
 
-Any Alienware/Dell G-series hardware with RGB lights from 2010 to 2025.
+Any Alienware/Dell G-series hardware from 2010 to 2025.
 
 ## AlienFX-SDK
 
