@@ -51,7 +51,7 @@ static unsigned GetZoneCodeFromString(const std::string& zone) {
     }
     try {
         unsigned v = static_cast<unsigned>(std::stoul(zone, nullptr, 0));
-        if (v <= 0xFFFF) v |= 0x10000;  // keep old behavior for short ids
+        // if (v <= 0xFFFF) v |= 0x10000;  // keep old behavior for short ids
         return v;
     } catch (...) {
         return 0xff;
@@ -351,8 +351,8 @@ int main(int argc, char** argv) {
             cout << afx_map.GetGroups()->size() << " zones:\n";
             for (size_t i = 0; i < afx_map.GetGroups()->size(); i++) {
                 const auto& g = afx_map.GetGroups()->at(i);
-                cout << "  Zone #" << (g.gid & 0xffff) << " ("
-                     << g.lights.size() << " lights) - " << g.name << "\n";
+                cout << "  Zone #" << (g.gid) << " (" << g.lights.size()
+                     << " lights) - " << g.name << "\n";
             }
         }
     });

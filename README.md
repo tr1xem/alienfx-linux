@@ -7,9 +7,9 @@ Check out `Example-App/` for a sample application.
 All testing applications are located in `alienfx-cli/` folder.
 
 Tested on linux:
+
 - Alienware elc (g-series,alienware m series)
 - Darfon (alienware series)
-
 
 ## AlienFan-SDK
 
@@ -72,7 +72,7 @@ Some notebooks can have 2 devices - APIv4 (for logo, power button, etc) and APIv
 ```bash
 mkdir build/
 cd build/
-cmake .. -G Ninja
+cmake .. -G Ninja -DALIENFX_BUILD_CLI=ON -DALIENFX_BUILD_EXAMPLE=ON
 ninja
 ```
 
@@ -83,7 +83,8 @@ It would build 3 executables:
 - `alienfx-cli` - command line tool for testing and configuring lights
 
 # Credits
+
 - [T-Troll](https://github.com/T-Troll) - for original sdk and resources
 - [StromyCoder](https://github.com/StormyCoder) - for testing in m18 r2
 - # [ZackSM](https://github.com/valtasar27) - for testing m18 r1
-<small> bro wanted his name big </small> 
+    <small> bro wanted his name big </small>
