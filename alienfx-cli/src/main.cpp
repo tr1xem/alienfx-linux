@@ -42,9 +42,6 @@ static void InitAlienFx() {
 }
 
 static unsigned GetZoneCodeFromString(const std::string& zone) {
-    // keep same semantics as old GetZoneCode(ARG)
-    // If devType (lowlevel) -> return "zone number | 0x10000" ? (old behavior
-    // used ARG.num) Here we support named zones like before
     for (const auto& z : zonecodes) {
         if (zone == z.name) {
             return z.code | 0x10000;  // matches old low-level path expectation
@@ -309,7 +306,6 @@ int main(int argc, char** argv) {
         if (dev < 0 || (size_t)dev >= afx_map.fxdevs.size())
             throw CLI::ValidationError("dev", "Device index out of range");
 
-        // old behavior: cmode depends on args count
         uint8_t cmode = gargs.size() < 6 ? 3 : (gargs.size() < 9 ? 1 : 2);
         while (gargs.size() < 9) gargs.push_back(0);
 
@@ -350,7 +346,7 @@ int main(int argc, char** argv) {
         }
     });
 
-    // probe  (interactive stays interactive, but modern input)
+    // probe
     auto* cmd_probe =
         app.add_subcommand("probe", "Probe lights and set names (interactive)");
     int probe_lights = -1;
