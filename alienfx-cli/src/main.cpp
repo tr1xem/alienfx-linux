@@ -263,8 +263,10 @@ int main(int argc, char** argv) {
         unsigned zoneCode = GetZoneCodeFromString(sza_zone);
         auto* grp = afx_map.GetGroupById(zoneCode);
         // if (!grp) throw std::runtime_error("Zone/group not found");
-        LOG_F(ERROR, "Zone/group not found: %s", sza_zone.c_str());
-        std::exit(1);
+        if (!grp) {
+            LOG_F(ERROR, "Zone/group not found: %s", sza_zone.c_str());
+            std::exit(1);
+        }
 
         auto actions = ParseActionList(sza_tokens);
         AlienFX_SDK::Afx_lightblock block{0, actions};
