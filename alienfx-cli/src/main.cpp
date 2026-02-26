@@ -1,9 +1,12 @@
+#include <stdio.h>
+
+#include <cstring>
+#include <iostream>
+#include <map>
+
 #include "AlienFan-SDK.h"
 #include "const.h"
 #include "loguru.hpp"
-#include <iostream>
-#include <map>
-#include <stdio.h>
 
 #define ARRAYSIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
@@ -15,11 +18,13 @@ uint8_t sleepy = 5, longer = 5;
 int devType = -1;
 
 void printUsage() {
-    printf("Usage: alienfx-cli [command=option,option,option] ... "
-           "[loop]\nCommands:\t\tOptions:\n");
+    printf(
+        "Usage: alienfx-cli [command=option,option,option] ... "
+        "[loop]\nCommands:\t\tOptions:\n");
     for (int i = 0; i < ARRAYSIZE(commands); i++)
         printf("%s\t\t%s.\n", commands[i].name, commands[i].desc);
-    printf("\nProbe argument (can be combined):\n\
+    printf(
+        "\nProbe argument (can be combined):\n\
 \tl - Define number of lights\n\
 \td - DeviceID and optionally LightID.\n\
 Zones:\tleft, right, middle_right,middle_left or ID of the Group (low-level).\n\
@@ -35,8 +40,7 @@ unsigned GetZoneCode(ARG name) {
         return name.num | 0x10000;
     else {
         for (int i = 0; i < ARRAYSIZE(zonecodes); i++)
-            if (name.str == zonecodes[i].name)
-                return zonecodes[i].code;
+            if (name.str == zonecodes[i].name) return zonecodes[i].code;
         return 0xff;
     }
 }
@@ -61,15 +65,15 @@ void Update() {
     for (int i = 0; i < afx_map.fxdevs.size(); i++)
         afx_map.fxdevs[i].dev->UpdateColors();
 }
-unsigned int Act2UINT(AlienFX_SDK::Afx_action *act) {
+unsigned int Act2UINT(AlienFX_SDK::Afx_action* act) {
     return AlienFX_SDK::Afx_colorcode({act->b, act->g, act->r, 255}).ci;
 }
 
-vector<AlienFX_SDK::Afx_action> ParseActions(vector<ARG> *args, int startPos) {
+vector<AlienFX_SDK::Afx_action> ParseActions(vector<ARG>* args, int startPos) {
     vector<AlienFX_SDK::Afx_action> actions;
     for (int argPos = startPos; argPos + 2 < args->size(); argPos += 3) {
         uint8_t acttype = AlienFX_SDK::Action::AlienFX_A_Color;
-        if (argPos + 3 < args->size()) { // action
+        if (argPos + 3 < args->size()) {  // action
             for (int i = 0; i < ARRAYSIZE(actioncodes); i++)
                 if (args->at(argPos).str == actioncodes[i].name) {
                     acttype = actioncodes[i].afx_code;
@@ -81,9 +85,9 @@ vector<AlienFX_SDK::Afx_action> ParseActions(vector<ARG> *args, int startPos) {
             acttype,
             sleepy,
             longer,
-            (uint8_t)(args->at(argPos).num),     // * globalBright) / 255), //r
-            (uint8_t)(args->at(argPos + 1).num), // * globalBright) / 255), //g
-            (uint8_t)(args->at(argPos + 2).num), // * globalBright) / 255) //b
+            (uint8_t)(args->at(argPos).num),      // * globalBright) / 255), //r
+            (uint8_t)(args->at(argPos + 1).num),  // * globalBright) / 255), //g
+            (uint8_t)(args->at(argPos + 2).num),  // * globalBright) / 255) //b
         });
         // AlienFX_SDK::Afx_action* color = &actions.back();
         // color->r = ((unsigned)color->r * globalBright) / 255;// >> 8;
@@ -97,7 +101,7 @@ vector<AlienFX_SDK::Afx_action> ParseActions(vector<ARG> *args, int startPos) {
     return actions;
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     printf("alienfx-cli v%s\n", VERSION);
     if (argc < 2) {
         printUsage();
@@ -128,23 +132,23 @@ int main(int argc, char *argv[]) {
     }
     LOG_F(INFO, "%d low-level devices found.", afx_map.activeDevices);
 
-    if (devType >= 0) {
-        for (int cc = 1; cc < argc; cc++) {
-            string arg = string(argv[cc]);
-            size_t vid = arg.find_first_of('=');
-            string command = arg.substr(0, vid);
-            vector<ARG> args;
+    // if (devType >= 0) {
+    for (int cc = 1; cc < argc; cc++) {
+        string arg = string(argv[cc]);
+        size_t vid = arg.find_first_of('=');
+        string command = arg.substr(0, vid);
+        vector<ARG> args;
 
-            while (vid != string::npos) {
-                size_t argPos = arg.find(',', vid + 1);
-                args.push_back({arg.substr(
-                    vid + 1, (argPos == string::npos ? arg.length() : argPos) -
-                                 vid - 1)});
-                args.back().num = atoi(args.back().str.c_str());
-                vid = argPos;
-            }
+        while (vid != string::npos) {
+            size_t argPos = arg.find(',', vid + 1);
+            args.push_back({arg.substr(
+                vid + 1,
+                (argPos == string::npos ? arg.length() : argPos) - vid - 1)});
+            args.back().num = atoi(args.back().str.c_str());
+            vid = argPos;
+        }
 
-            switch (CheckCommand(command, (int)args.size())) {
+        switch (CheckCommand(command, (int)args.size())) {
             // case COMMANDS::setall:  {
             case COMMANDS::setall: {
                 auto acts = ParseActions(&args, 0);
@@ -187,7 +191,7 @@ int main(int argc, char *argv[]) {
             case COMMANDS::setzone: {
                 unsigned zoneCode = GetZoneCode(args[0]);
                 // if (devType) {
-                AlienFX_SDK::Afx_group *grp = afx_map.GetGroupById(zoneCode);
+                AlienFX_SDK::Afx_group* grp = afx_map.GetGroupById(zoneCode);
                 if (grp) {
                     for (auto j = afx_map.fxdevs.begin();
                          j != afx_map.fxdevs.end(); j++) {
@@ -232,9 +236,9 @@ int main(int argc, char *argv[]) {
                 unsigned zoneCode = GetZoneCode(args[0]);
                 AlienFX_SDK::Afx_lightblock act = {0, ParseActions(&args, 1)};
                 // if (devType) {
-                AlienFX_SDK::Afx_group *grp = afx_map.GetGroupById(zoneCode);
+                AlienFX_SDK::Afx_group* grp = afx_map.GetGroupById(zoneCode);
                 if (grp) {
-                    AlienFX_SDK::Afx_device *dev;
+                    AlienFX_SDK::Afx_device* dev;
                     for (auto i = grp->lights.begin(); i != grp->lights.end();
                          i++) {
                         if ((dev = afx_map.GetDeviceById(i->did))) {
@@ -374,10 +378,11 @@ int main(int argc, char *argv[]) {
 
                 for (auto i = afx_map.fxdevs.begin(); i != afx_map.fxdevs.end();
                      i++) {
-                    printf("===== Device VID_%04x, PID_%04x =====\n"
-                           "+++++ Detected as:  %s, APIv%d%s +++++\n",
-                           i->vid, i->pid, i->dev->description.c_str(),
-                           i->version, i->present ? "" : ", Inactive");
+                    printf(
+                        "===== Device VID_%04x, PID_%04x =====\n"
+                        "+++++ Detected as:  %s, APIv%d%s +++++\n",
+                        i->vid, i->pid, i->dev->description.c_str(), i->version,
+                        i->present ? "" : ", Inactive");
                 }
 
                 printf("Do you want to set devices and lights names? ");
@@ -408,6 +413,7 @@ int main(int argc, char *argv[]) {
                             printf(", current name %s", cDev->name.c_str());
                             printf(", New name (ENTER to skip): ");
                             fgets(name, sizeof(name), stdin);
+                            name[strcspn(name, "\r\n")] = 0;
 
                             if (name[0]) {
                                 // cDev->name = isdigit(name[0]) && have_high ?
@@ -426,15 +432,11 @@ int main(int argc, char *argv[]) {
                             AlienFX_SDK::Afx_lightblock lon{0, {{0}}};
                             for (uint8_t i = 0; i < fnumlights; i++) {
                                 if (lightID == -1 || lightID == i) {
-                                    bool isLastLight =
-                                        (lightID != -1) ? true
-                                                        : (i == fnumlights - 1);
-
                                     printf("Testing light #%d", i);
                                     lon.index = i;
                                     lon.act.front().g = 255;
 
-                                    AlienFX_SDK::Afx_light *lmap =
+                                    AlienFX_SDK::Afx_light* lmap =
                                         afx_map.GetMappingByDev(&(*cDev), i);
                                     if (lmap) {
                                         printf(", current name %s",
@@ -451,6 +453,7 @@ int main(int argc, char *argv[]) {
                                     cDev->dev->SetAction(&lon);
                                     cDev->dev->UpdateColors();
                                     fgets(name, sizeof(name), stdin);
+                                    name[strcspn(name, "\r\n")] = 0;
 
                                     if (name[0]) {
                                         if (lmap) {
@@ -459,19 +462,16 @@ int main(int argc, char *argv[]) {
                                             cDev->lights.push_back(
                                                 {i, {0, 0}, name});
                                         }
-                                        // afx_map.SaveMappings();
-                                        // printf("New name is %s, ", name);
+                                        afx_map.SaveMappings();
+                                        printf("New name is %s, ", name);
                                     } else {
-                                        LOG_F(INFO, "Skipped, ");
+                                        printf("Skipped, ");
                                     }
 
                                     lon.act.front().g = 0;
                                     cDev->dev->SetAction(&lon);
                                     cDev->dev->UpdateColors();
-                                    // afx_map.SaveMappings();
-                                    if (isLastDevice && isLastLight) {
-                                        afx_map.SaveMappings(true);
-                                    }
+                                    afx_map.SaveMappings();
                                 }
                             }
                         }
@@ -497,7 +497,7 @@ int main(int argc, char *argv[]) {
             }
 
             case COMMANDS::setpowerprofile: {
-                if (!args.empty()) { // instead of args.size() > 1
+                if (!args.empty()) {  // instead of args.size() > 1
                     std::map<std::string, AlienFan_SDK::ALIENFAN_PROFILE>
                         strToProfile = {
                             {"custom", AlienFan_SDK::CUSTOM},
@@ -536,14 +536,14 @@ int main(int argc, char *argv[]) {
                 LOG_F(ERROR, "Unknown command %s", command.c_str());
                 break;
             }
-            }
         }
-#ifdef DEBUG
-        LOG_F(INFO, "Done.");
-#endif
-    } else {
-        LOG_F(ERROR, "Light devices not found, exiting!");
     }
+#ifdef DEBUG
+    LOG_F(INFO, "Done.");
+#endif
+    // } else {
+    //     LOG_F(ERROR, "Light devices not found, exiting!");
+    // }
 
     // if (have_high)
     //     lfxUtil.Release();
