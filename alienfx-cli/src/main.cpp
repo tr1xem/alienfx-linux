@@ -24,7 +24,7 @@ static void Update() {
     }
 }
 
-static void InitAlienFx() {
+static void initCli() {
     fan.Probe();
     afx_map.LoadMappings();
     afx_map.AlienFXEnumDevices();
@@ -127,7 +127,7 @@ int main(int argc, char** argv) {
     bool needInit = true;
     auto ensureInit = [&]() {
         if (needInit) {
-            InitAlienFx();
+            initCli();
             needInit = false;
         }
     };
