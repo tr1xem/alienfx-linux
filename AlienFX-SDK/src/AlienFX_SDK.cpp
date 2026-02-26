@@ -1019,18 +1019,21 @@ void Mappings::AlienFxUpdateDevice(Functions* dev) {
         activeLights += (unsigned)devInfo->lights.size();
         if (devInfo->dev) {
             delete dev;
+#ifdef DEBUG
             LOG_S(INFO) << "Scan: VID: " << std::hex << devInfo->vid
                         << ", PID: " << std::hex << devInfo->pid
                         << ", Version: " << devInfo->version
                         << " - present already";
             devInfo->arrived = false;
+#endif
         } else {
             devInfo->dev = dev;
             deviceListChanged = devInfo->arrived = true;
+#ifdef DEBUG
             LOG_S(INFO) << "Scan: VID: " << std::hex << devInfo->vid
                         << ", PID: " << std::hex << devInfo->pid
-                        << ", Version: " << devInfo->version
-                        << " - return back";
+                        << ", Version: " << devInfo->version;
+#endif
         }
         activeDevices++;
     } else {
@@ -1039,9 +1042,11 @@ void Mappings::AlienFxUpdateDevice(Functions* dev) {
         deviceListChanged = fxdevs.back().arrived = fxdevs.back().present =
             true;
         activeDevices++;
+#ifdef DEBUG
         LOG_S(INFO) << "Scan: VID: " << std::hex << dev->vid
                     << ", PID: " << std::hex << dev->pid
                     << ", Version: " << dev->version << " - new device added";
+#endif
     }
 }
 bool Mappings::AlienFXEnumDevices(void* acc) {
