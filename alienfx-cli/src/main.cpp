@@ -1,5 +1,6 @@
 #include <CLI/CLI.hpp>
 #include <cstdint>
+#include <cstdlib>
 #include <iostream>
 #include <loguru.hpp>
 #include <map>
@@ -41,25 +42,27 @@ static void initCli() {
 }
 
 static unsigned GetZoneCodeFromString(const std::string& zone) {
-    for (const auto& z : zonecodes) {
-        if (zone == z.name) {
-            return z.code | 0x10000;  // matches old low-level path expectation
+    if (auto* groups = afx_map.GetGroups()) {
+        for (const auto& g : *groups) {
+            if (g.name == zone) {
+                return static_cast<unsigned>(g.gid);
+            }
         }
     }
-    // allow numeric group id as string too
     try {
         unsigned v = static_cast<unsigned>(std::stoul(zone, nullptr, 0));
-        return v | 0x10000;
+        if (v <= 0xFFFF) v |= 0x10000;  // keep old behavior for short ids
+        return v;
     } catch (...) {
         return 0xff;
     }
 }
-
 static uint8_t ActionFromString(const std::string& name) {
     for (const auto& a : actioncodes) {
         if (name == a.name) return static_cast<uint8_t>(a.afx_code);
     }
-    throw std::runtime_error("Unknown action: " + name);
+    LOG_F(ERROR, "Unknown action: %s", name.c_str());
+    std::exit(1);
 }
 
 static AlienFX_SDK::Afx_action MakeColorAction(int r, int g, int b,
@@ -89,7 +92,8 @@ static vector<AlienFX_SDK::Afx_action> ParseActionList(
         i++;
 
         if (i + 2 >= tokens.size()) {
-            throw std::runtime_error("Action requires r g b");
+            LOG_F(ERROR, "Action requires r g b");
+            std::exit(1);
         }
         int r = stoi(tokens[i++]);
         int g = stoi(tokens[i++]);
@@ -258,7 +262,9 @@ int main(int argc, char** argv) {
         ensureInit();
         unsigned zoneCode = GetZoneCodeFromString(sza_zone);
         auto* grp = afx_map.GetGroupById(zoneCode);
-        if (!grp) throw std::runtime_error("Zone/group not found");
+        // if (!grp) throw std::runtime_error("Zone/group not found");
+        LOG_F(ERROR, "Zone/group not found: %s", sza_zone.c_str());
+        std::exit(1);
 
         auto actions = ParseActionList(sza_tokens);
         AlienFX_SDK::Afx_lightblock block{0, actions};
