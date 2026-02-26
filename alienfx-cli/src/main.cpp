@@ -1,14 +1,13 @@
 #include <CLI/CLI.hpp>
 #include <cstdint>
 #include <iostream>
+#include <loguru.hpp>
 #include <map>
-#include <optional>
 #include <string>
 #include <vector>
 
 #include "AlienFan-SDK.h"
 #include "const.h"
-#include "loguru.hpp"
 
 using namespace std;
 
@@ -132,6 +131,10 @@ int main(int argc, char** argv) {
             needInit = false;
         }
     };
+    app.add_option("--brightness", globalBright, "Global brightness 0-255")
+        ->default_val(255);
+    app.add_option("--tempo", sleepy, "Tempo for actions")->default_val(5);
+    app.add_option("--length", longer, "Length for actions")->default_val(5);
 
     // setall r g b
     auto* cmd_setall = app.add_subcommand("setall", "r g b - set all lights");
