@@ -439,6 +439,122 @@ int main(int argc, char** argv) {
         }
     });
 
+    // createlightzone
+    auto* cmd_createlightzone = app.add_subcommand(
+        "createlightzone", "Interactively create a light zone/group");
+    cmd_createlightzone->callback([&]() {
+        ensureInit();
+
+        cout << "Zone name: ";
+        string zoneName = ReadLineTrimmed();
+        if (zoneName.empty()) {
+            LOG_F(ERROR, "Zone name cannot be empty");
+            std::exit(1);
+        }
+
+        // Check if zone name already exists
+        auto* groups = afx_map.GetGroups();
+        for (const auto& g : *groups) {
+            if (g.name == zoneName) {
+                cout << "Zone '" << zoneName
+                     << "' already exists. Overwrite? (y/N) ";
+                auto ans = ReadLineTrimmed();
+                if (ans.empty() || (ans[0] != 'y' && ans[0] != 'Y')) {
+                    cout << "Aborted.\n";
+                    return;
+                }
+                // Remove existing zone
+                for (auto it = groups->begin(); it != groups->end(); ++it) {
+                    if (it->name == zoneName) {
+                        groups->erase(it);
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+
+        // Ask for device index once
+        cout << "Device index (from status): ";
+        string devIdxStr = ReadLineTrimmed();
+        if (devIdxStr.empty()) {
+            LOG_F(ERROR, "Device index required");
+            std::exit(1);
+        }
+        int devIndex = 0;
+        try {
+            devIndex = std::stoi(devIdxStr, nullptr, 0);
+        } catch (...) {
+            LOG_F(ERROR, "Invalid device index");
+            std::exit(1);
+        }
+
+        if (devIndex < 0 || (size_t)devIndex >= afx_map.fxdevs.size()) {
+            LOG_F(ERROR, "Device index out of range");
+            std::exit(1);
+        }
+
+        auto& dev = afx_map.fxdevs[(size_t)devIndex];
+        if (!dev.dev) {
+            LOG_F(ERROR, "Device not initialized");
+            std::exit(1);
+        }
+
+        // Collect light IDs in a loop
+        vector<int> lightIds;
+        while (true) {
+            cout << "Enter light id (ENTER to finish): ";
+            string s = ReadLineTrimmed();
+            if (s.empty()) break;
+
+            int lid = 0;
+            try {
+                lid = std::stoi(s, nullptr, 0);
+            } catch (...) {
+                cout << "Invalid light id, try again.\n";
+                continue;
+            }
+            if (lid < 0 || lid > 255) {
+                cout << "Light id must be 0-255\n";
+                continue;
+            }
+            lightIds.push_back(lid);
+        }
+
+        if (lightIds.empty()) {
+            LOG_F(ERROR, "No lights entered; nothing to save");
+            std::exit(1);
+        }
+
+        // Generate a new group ID (use max gid + 1, or 1 if no groups exist)
+        unsigned long newGid = 1;
+        if (!groups->empty()) {
+            for (const auto& g : *groups) {
+                if (g.gid >= newGid) newGid = g.gid + 1;
+            }
+        }
+
+        // Build the new group
+        AlienFX_SDK::Afx_group newGroup;
+        newGroup.gid = newGid;
+        newGroup.name = zoneName;
+        newGroup.lights.clear();
+
+        for (int lid : lightIds) {
+            AlienFX_SDK::Afx_groupLight gl;
+            gl.did = dev.pid;  // device PID
+            gl.lid = (unsigned short)lid;
+            newGroup.lights.push_back(gl);
+        }
+
+        // Add to groups and save
+        groups->push_back(newGroup);
+        afx_map.SaveMappings();
+
+        cout << "Created zone '" << zoneName << "' (gid=" << newGid << ") with "
+             << lightIds.size() << " light(s) from device PID " << dev.pid
+             << ".\n";
+    });
     // fan commands
     auto* cmd_getpp =
         app.add_subcommand("getpowerprofile", "Get current power profile");
