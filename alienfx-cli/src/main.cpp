@@ -1,6 +1,7 @@
 #include <CLI/CLI.hpp>
 #include <cstdint>
 #include <cstdlib>
+#include <format>
 #include <iostream>
 #include <loguru.hpp>
 #include <map>
@@ -123,10 +124,14 @@ static string ReadLineTrimmed() {
 }
 
 int main(int argc, char** argv) {
-    // loguru::init(argc, argv);
+    std::string desciption = std::format(
+        "AlienFX CLI v{} \n Control all of your Alienware device from the "
+        "comfort of your terminal",
+        VERSION);
 
-    CLI::App app{"alienfx_cli"};
-    app.set_version_flag("--version", string("alienfx-cli v") + VERSION);
+    CLI::App app{desciption, "alienfx_cli"};
+    argv = app.ensure_utf8(argv);
+    app.set_version_flag("-v", string("alienfx-cli v") + VERSION);
 
     bool needInit = true;
     auto ensureInit = [&]() {
