@@ -552,8 +552,8 @@ int main(int argc, char** argv) {
         afx_map.SaveMappings();
 
         cout << "Created zone '" << zoneName << "' (gid=" << newGid << ") with "
-             << lightIds.size() << " light(s) from device PID " << dev.pid
-             << ".\n";
+             << lightIds.size() << " light(s) from device PID 0x" << std::hex
+             << dev.pid << std::dec << ".\n";
     });
     // fan commands
     auto* cmd_getpp =
