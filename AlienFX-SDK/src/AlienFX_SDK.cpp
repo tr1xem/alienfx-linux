@@ -240,7 +240,7 @@ bool Functions::AlienFXProbeDevice(libusb_context* ctxx, unsigned short vidd,
 
     if (!devHandle) {
         LOG_S(ERROR) << "Failed to open HID device VID:0x" << std::hex << vid
-                     << " PID:0x" << pid;
+                     << " PID:0x" << pid << std::dec;
         return false;
     }
     wchar_t wbuf[256];
@@ -262,8 +262,7 @@ bool Functions::AlienFXProbeDevice(libusb_context* ctxx, unsigned short vidd,
     LOG_S(INFO) << "Probing device VID: 0x" << std::hex << std::setw(4)
                 << std::setfill('0') << static_cast<int>(vidd) << ", PID: 0x"
                 << std::setw(4) << std::setfill('0') << static_cast<int>(pidd)
-                << ", Version: " << std::dec
-                << version  // switch back to decimal
+                << ", Version: " << std::dec << version
                 << ", Length: " << std::dec << length
                 << ", Description: " << description;
 
@@ -300,7 +299,8 @@ bool Functions::AlienFXProbeDevice(libusb_context* ctxx, unsigned short vidd,
 
 bool Functions::Reset() {
 #ifdef DEBUG
-    LOG_S(INFO) << "Resetting device 0x" << std::hex << pid << ": 0x" << vid;
+    LOG_S(INFO) << "Resetting device 0x" << std::hex << pid << ": 0x" << vid
+                << std::dec;
 #endif
     switch (version) {
         // case API_V9:
@@ -1162,35 +1162,37 @@ Afx_group* Mappings::GetGroupById(unsigned long gID) {
     return nullptr;
 }
 
-static std::filesystem::path GetMappingsPath() {
-    const char* xdgData = std::getenv("XDG_DATA_HOME");
+std::filesystem::path Mappings::GetMappingsPath(const char* username) {
     std::filesystem::path base;
 
-    if (xdgData && *xdgData) {
-        base = xdgData;
+    if (username != nullptr && *username) {
+        base = std::filesystem::path("/home") / username / ".local" / "share";
     } else {
-        const char* home = std::getenv("HOME");
-        if (home && *home) {
-            base = home;
+        const char* xdgData = std::getenv("XDG_DATA_HOME");
+
+        if (xdgData && *xdgData) {
+            base = xdgData;
         } else {
-            // very last-resort fallback (relative)
-            base = ".";
+            const char* home = std::getenv("HOME");
+
+            if (home && *home)
+                base = std::filesystem::path(home) / ".local" / "share";
+            else
+                base = std::filesystem::path(".") / ".local" / "share";
         }
-        base /= ".local";
-        base /= "share";
     }
 
     base /= "alienfx";
     return base / "mappings.json";
 }
 
-static void EnsureParentDirExists(const std::filesystem::path& p) {
+void Mappings::EnsureParentDirExists(const std::filesystem::path& p) {
     std::error_code ec;
     std::filesystem::create_directories(p.parent_path(), ec);
 }
 
-void Mappings::LoadMappings() {
-    const auto path = GetMappingsPath();
+void Mappings::LoadMappings(const char* username) {
+    const auto path = GetMappingsPath(username);
     if (!std::filesystem::exists(path)) {
 #ifdef DEBUG
         LOG_S(INFO) << "No mappings file found at: " << path.string();
@@ -1301,7 +1303,7 @@ void Mappings::LoadMappings() {
 #endif
 }
 
-void Mappings::SaveMappings() {
+void Mappings::SaveMappings(const char* username) {
     json j;
     j["schemaVersion"] = 1;
 
@@ -1363,7 +1365,7 @@ void Mappings::SaveMappings() {
 
         j["grids"].push_back(std::move(jgr));
     }
-    const auto path = GetMappingsPath();
+    const auto path = GetMappingsPath(username);
     EnsureParentDirExists(path);
 
     // Write atomically: write temp then rename

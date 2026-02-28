@@ -334,9 +334,10 @@ int main(int argc, char** argv) {
         for (auto it = afx_map.fxdevs.begin(); it < afx_map.fxdevs.end();
              it++) {
             cout << "Device #" << (it - afx_map.fxdevs.begin()) << " - "
-                 << it->name << ", VID#" << it->vid << ", PID#" << it->pid
-                 << ", APIv" << (int)it->version << ", " << it->lights.size()
-                 << " lights" << (it->present ? "" : " (inactive)") << "\n";
+                 << it->name << ", VID#0x" << std::hex << it->vid << std::dec
+                 << ", PID#0x" << std::hex << it->pid << std::dec << ", APIv"
+                 << (int)it->version << ", " << it->lights.size() << " lights"
+                 << (it->present ? "" : " (inactive)") << "\n";
             for (const auto& l : it->lights) {
                 cout << "  Light ID#" << (int)l.lightid << " - " << l.name
                      << ((l.flags & ALIENFX_FLAG_POWER) ? " (Power button)"
@@ -372,7 +373,7 @@ int main(int argc, char** argv) {
         ensureInit();
 
         for (auto& d : afx_map.fxdevs) {
-            cout << "===== Device VID_" << std::hex << d.vid << ", PID_"
+            cout << "===== Device VID 0x" << std::hex << d.vid << ", PID 0x"
                  << d.pid << std::dec << " =====\n"
                  << "+++++ Detected as: " << d.dev->description << ", APIv"
                  << (int)d.version << (d.present ? "" : ", Inactive")
@@ -387,9 +388,9 @@ int main(int argc, char** argv) {
             if (probe_dev != -1 && (int)di != probe_dev) continue;
             auto& cDev = afx_map.fxdevs[di];
 
-            cout << "Probing device VID_" << std::hex << cDev.vid << ", PID_"
-                 << cDev.pid << std::dec << ", current name " << cDev.name
-                 << ", New name (ENTER to skip): ";
+            cout << "Probing device VID 0x" << std::hex << cDev.vid
+                 << ", PID 0x" << cDev.pid << std::dec << ", current name "
+                 << cDev.name << ", New name (ENTER to skip): ";
             auto newDevName = ReadLineTrimmed();
             if (!newDevName.empty()) cDev.name = newDevName;
 

@@ -2,6 +2,7 @@
 #include <hidapi_libusb.h>
 #include <libusb.h>
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -187,8 +188,8 @@ class Functions {
     };
     int version = API_UNKNOWN;  // interface version, will stay at API_UNKNOWN
                                 // if not initialized
-    uint8_t bright = 64;  // Last brightness set for device
-    string description;   // device description
+    uint8_t bright = 64;        // Last brightness set for device
+    string description;         // device description
 
     // Functions(libusb_context *ctxx) : ctx(ctxx) {};
     ~Functions();
@@ -268,6 +269,10 @@ class Mappings {
     std::vector<Afx_group> groups;  // Defined light groups
     std::vector<Afx_grid> grids;    // Grid zones info
     libusb_context* ctx = nullptr;
+    // helper functions
+    static std::filesystem::path GetMappingsPath(
+        const char* username = nullptr);
+    static void EnsureParentDirExists(const std::filesystem::path& p);
 
    public:
     vector<Afx_device> fxdevs;  // main devices/mappings array
@@ -286,11 +291,11 @@ class Mappings {
     // returns true if light device list was changed
     bool AlienFXEnumDevices(void* acc = NULL);
 
-    // load light names from registry
-    void LoadMappings();
+    // load light names from a path
+    void LoadMappings(const char* username = nullptr);
 
-    // save light names into registry
-    void SaveMappings();
+    // save light names into a path
+    void SaveMappings(const char* username = nullptr);
 
     // Set device brightness
     // dev - point to AFX device info
