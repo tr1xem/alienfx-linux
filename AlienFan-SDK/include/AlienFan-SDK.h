@@ -12,7 +12,8 @@ struct ALIENFAN_FAN {
     std::string fanSpeed{};
     std::string boost{};
     std::string maxRPM{};
-    ALIENFAN_FAN(uint8_t fanId, const std::string &fanName)
+    ALIENFAN_FAN() = default;
+    ALIENFAN_FAN(uint8_t fanId, const std::string& fanName)
         : id(fanId), name(fanName) {
         fanSpeed = "fan" + std::to_string(id) + "_input";
         boost = "fan" + std::to_string(id) + "_boost";
@@ -26,7 +27,7 @@ struct ALIENFAN_SENSOR {
     std::string name{};
 };
 
-inline const char *ALIENFAN_PROFILE_NAME[] = {
+inline const char* ALIENFAN_PROFILE_NAME[] = {
     "custom",      "balanced", "quiet",    "balanced-performance",
     "performance", "cool",     "low-power"};
 
@@ -46,14 +47,14 @@ struct ALIENFAN_PROFILE_INFO {
 };
 
 class Control {
-  private:
+   private:
     uint8_t sysType;
     std::filesystem::path sensorBasePath{};
     std::filesystem::path profileBasePath{};
     void EnumSensorsPath();
     void EnumProfilePath();
 
-  public:
+   public:
     bool isAlienware = false, profilesSupported = false,
          isGmodeSupported = false, sensorsSupported = false;
     uint8_t maxTCC, maxOffset;
@@ -126,4 +127,4 @@ class Control {
     std::vector<ALIENFAN_PROFILE_INFO> profiles;
 };
 
-} // namespace AlienFan_SDK
+}  // namespace AlienFan_SDK
