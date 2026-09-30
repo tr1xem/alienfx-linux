@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "AlienFX_SDK.h"
+#include "Area51Protocol.h"
 #include "AlienFan-SDK.h"
 #include "const.h"
 
@@ -29,17 +30,50 @@ static void Update() {
     }
 }
 
+static bool IsArea51Keyboard(const AlienFX_SDK::Afx_device& dev) {
+    return dev.vid == 0x0d62 && dev.pid == 0x1bbc;
+}
+
+static AlienFX_SDK::Afx_device* FindPresent(unsigned short vid,
+                                            unsigned short pid) {
+    for (auto& dev : afx_map.fxdevs) {
+        if (dev.present && dev.dev && dev.vid == vid && dev.pid == pid)
+            return &dev;
+    }
+    return nullptr;
+}
+
+// Shipped profile for the Alienware 16 Area-51 AA16250 keyboard. This wins
+// over ~/.local/share/alienfx/mappings.json for 0d62:1bbc.
+static void ApplyBuiltinProfiles() {
+    for (auto& dev : afx_map.fxdevs) {
+        if (!dev.present || !IsArea51Keyboard(dev)) continue;
+        dev.lights.clear();
+        dev.lights.reserve(0xB4);
+        for (int id = 0; id <= 0xB3; ++id) {
+            AlienFX_SDK::Afx_light light{};
+            light.lightid = static_cast<uint8_t>(id);
+            light.name = "key";
+            dev.lights.push_back(light);
+        }
+        if (dev.name.empty()) dev.name = "Alienware 16 Area-51 keyboard";
+    }
+}
+
 static void initCli() {
     fan.Probe();
     afx_map.LoadMappings();
     afx_map.AlienFXEnumDevices();
+    ApplyBuiltinProfiles();
 
     if (afx_map.activeDevices) {
         devType = 1;
         for (auto& dev : afx_map.fxdevs) {
-            if (dev.present) {
-                afx_map.SetDeviceBrightness(&dev, 255, true);
-            }
+            if (!dev.present) continue;
+            // Brightness setup for this keyboard sends reset and turn-on,
+            // which leaves the hardware animation running.
+            if (IsArea51Keyboard(dev)) continue;
+            afx_map.SetDeviceBrightness(&dev, 255, true);
         }
     }
     LOG_F(INFO, "%d low-level devices found.", afx_map.activeDevices);
@@ -183,6 +217,7 @@ int main(int argc, char** argv) {
     cmd_setall->add_option("b", b)->required()->check(CLI::Range(0, 255));
     cmd_setall->callback([&]() {
         ensureInit();
+        bool missingProfile = false;
         repeatCall([&]() {
             auto act =
                 MakeColorAction(r, g, b, AlienFX_SDK::Action::AlienFX_A_Color);
@@ -195,8 +230,19 @@ int main(int argc, char** argv) {
                         lights.push_back((uint8_t)l.lightid);
                     }
                 }
+                const bool keyboard = dev.vid == 0x0d62;
+                if (lights.empty()) {
+                    if (keyboard) {
+                        missingProfile = true;
+                        std::cerr << std::format(
+                            "Keyboard detected (VID 0x{:04x} PID 0x{:04x}) but "
+                            "no light profile is available for this model.\n",
+                            dev.vid, dev.pid);
+                    }
+                    continue;
+                }
                 dev.dev->SetMultiColor(&lights, act);
-                if (saveState) {
+                if (saveState && !IsArea51Keyboard(dev)) {
                     vector<AlienFX_SDK::Afx_lightblock> blocks;
                     for (auto& l : dev.lights) {
                         if (!(l.flags & ALIENFX_FLAG_POWER))
@@ -208,6 +254,190 @@ int main(int argc, char** argv) {
             }
             Update();
         });
+        bool keyboardUnopened = false;
+        struct hid_device_info* listed = hid_enumerate(0x0d62, 0x0000);
+        for (struct hid_device_info* cur = listed; cur; cur = cur->next) {
+            bool opened = false;
+            for (const auto& dev : afx_map.fxdevs) {
+                if (dev.present && dev.dev && dev.vid == cur->vendor_id &&
+                    dev.pid == cur->product_id) {
+                    opened = true;
+                    break;
+                }
+            }
+            if (!opened) {
+                keyboardUnopened = true;
+                std::cerr << std::format(
+                    "Keyboard VID 0x{:04x} PID 0x{:04x} was found but could "
+                    "not be opened.\n",
+                    cur->vendor_id, cur->product_id);
+            }
+        }
+        hid_free_enumeration(listed);
+        if (missingProfile || keyboardUnopened) std::exit(1);
+    });
+
+    auto* cmd_setkeys = app.add_subcommand(
+        "setkeys", "id r g b [id r g b ...] - set individual keyboard keys");
+    vector<int> key_quads;
+    cmd_setkeys->add_option("quads", key_quads)
+        ->required()
+        ->expected(-1);
+    cmd_setkeys->callback([&]() {
+        ensureInit();
+        if (key_quads.empty() || key_quads.size() % 4 != 0) {
+            std::cerr << "setkeys expects groups of id r g b.\n";
+            std::exit(1);
+        }
+        auto* dev = FindPresent(0x0d62, 0x1bbc);
+        if (!dev) {
+            std::cerr << "Area-51 keyboard 0d62:1bbc is not open.\n";
+            std::exit(1);
+        }
+        vector<AlienFX_SDK::Afx_lightblock> blocks;
+        blocks.reserve(key_quads.size() / 4);
+        for (size_t i = 0; i < key_quads.size(); i += 4) {
+            for (int k = 0; k < 4; k++) {
+                if (key_quads[i + k] < 0 || key_quads[i + k] > 255) {
+                    std::cerr << "setkeys values must be 0-255.\n";
+                    std::exit(1);
+                }
+            }
+            blocks.push_back(
+                {(uint8_t)key_quads[i],
+                 {MakeColorAction(key_quads[i + 1], key_quads[i + 2],
+                                  key_quads[i + 3],
+                                  AlienFX_SDK::Action::AlienFX_A_Color)}});
+        }
+        if (!dev->dev->SetPerKeyColors(&blocks)) std::exit(1);
+    });
+
+    auto* cmd_kbdim = app.add_subcommand(
+        "keyboarddim", "0-255 - brightness of the Area-51 keyboard");
+    int kb_dim = 255;
+    cmd_kbdim->add_option("level", kb_dim)
+        ->required()
+        ->check(CLI::Range(0, 255));
+    cmd_kbdim->callback([&]() {
+        ensureInit();
+        auto* dev = FindPresent(0x0d62, 0x1bbc);
+        if (!dev) {
+            std::cerr << "Area-51 keyboard 0d62:1bbc is not open.\n";
+            std::exit(1);
+        }
+        dev->brightness = (uint8_t)kb_dim;
+        if (!afx_map.SetDeviceBrightness(dev, globalBright, false))
+            std::exit(1);
+    });
+
+    auto* cmd_kbeffect = app.add_subcommand(
+        "keyboardeffect",
+        "breathe|wave|pulse|spectrum|rainbow r g b - hardware effect on the "
+        "Area-51 keyboard");
+    string kb_effect;
+    int ke_r = 0, ke_g = 0, ke_b = 0;
+    cmd_kbeffect->add_option("effect", kb_effect)->required();
+    cmd_kbeffect->add_option("r", ke_r)->required()->check(CLI::Range(0, 255));
+    cmd_kbeffect->add_option("g", ke_g)->required()->check(CLI::Range(0, 255));
+    cmd_kbeffect->add_option("b", ke_b)->required()->check(CLI::Range(0, 255));
+    cmd_kbeffect->callback([&]() {
+        ensureInit();
+        uint8_t effType = 0;
+        uint8_t colorCount = 1;
+        if (kb_effect == "breathe")
+            effType = 2;
+        else if (kb_effect == "wave")
+            effType = 3;
+        else if (kb_effect == "pulse")
+            effType = 8;
+        else if (kb_effect == "spectrum") {
+            effType = 2;
+            colorCount = 3;
+        } else if (kb_effect == "rainbow") {
+            effType = 3;
+            colorCount = 3;
+        } else {
+            std::cerr
+                << "Effect must be breathe, wave, pulse, spectrum, or rainbow.\n";
+            std::exit(1);
+        }
+        auto* dev = FindPresent(0x0d62, 0x1bbc);
+        if (!dev) {
+            std::cerr << "Area-51 keyboard 0d62:1bbc is not open.\n";
+            std::exit(1);
+        }
+        AlienFX_SDK::Afx_colorcode color{(uint8_t)ke_b, (uint8_t)ke_g,
+                                         (uint8_t)ke_r, 0};
+        if (!dev->dev->SetGlobalEffects(effType, 0, colorCount, sleepy, color,
+                                        color))
+            std::exit(1);
+    });
+
+    auto* cmd_powerbutton = app.add_subcommand(
+        "powerbutton",
+        "r g b r2 g2 b2 - plugged-in color, then battery color, on the power "
+        "button");
+    int pb_r = 0, pb_g = 0, pb_b = 0, pb_r2 = 0, pb_g2 = 0, pb_b2 = 0;
+    cmd_powerbutton->add_option("r", pb_r)->required()->check(CLI::Range(0, 255));
+    cmd_powerbutton->add_option("g", pb_g)->required()->check(CLI::Range(0, 255));
+    cmd_powerbutton->add_option("b", pb_b)->required()->check(CLI::Range(0, 255));
+    cmd_powerbutton->add_option("r2", pb_r2)
+        ->required()
+        ->check(CLI::Range(0, 255));
+    cmd_powerbutton->add_option("g2", pb_g2)
+        ->required()
+        ->check(CLI::Range(0, 255));
+    cmd_powerbutton->add_option("b2", pb_b2)
+        ->required()
+        ->check(CLI::Range(0, 255));
+    cmd_powerbutton->callback([&]() {
+        ensureInit();
+        auto* dev = FindPresent(0x187c, 0x0551);
+        if (!dev) dev = FindPresent(0x187c, 0x0550);
+        if (!dev) {
+            std::cerr << "AW-ELC power-button device is not open.\n";
+            std::exit(1);
+        }
+        AlienFX_SDK::Afx_lightblock act{
+            .index = 0x1b,
+            .act = {{.type = AlienFX_SDK::AlienFX_A_Power,
+                     .time = 3,
+                     .tempo = 0x64,
+                     .r = (uint8_t)pb_r,
+                     .g = (uint8_t)pb_g,
+                     .b = (uint8_t)pb_b},
+                    {.type = AlienFX_SDK::AlienFX_A_Power,
+                     .time = 3,
+                     .tempo = 0x64,
+                     .r = (uint8_t)pb_r2,
+                     .g = (uint8_t)pb_g2,
+                     .b = (uint8_t)pb_b2}}};
+        if (!dev->dev->SetPowerAction(&act)) std::exit(1);
+    });
+
+    // The power button keeps its own hardware effect. A chassis rainbow on
+    // that one LED steps through colors on a different clock than the
+    // keyboard wave. Phase time 3 on this profile is the fast strobe.
+    auto* cmd_powerrainbow = app.add_subcommand(
+        "powerrainbow",
+        "Slow rainbow on the power button, separate from the chassis animation");
+    cmd_powerrainbow->callback([&]() {
+        ensureInit();
+        auto* dev = FindPresent(0x187c, 0x0551);
+        if (!dev) dev = FindPresent(0x187c, 0x0550);
+        if (!dev) {
+            std::cerr << "AW-ELC power-button device is not open.\n";
+            std::exit(1);
+        }
+        // Same power-button action the hardware already shows. Phase time 3
+        // is the fast strobe. A rainbow opcode with no color left the LED off.
+        AlienFX_SDK::Afx_lightblock act{.index = 0x1b, .act = {}};
+        act.act.reserve(kPowerRainbowSteps.size());
+        for (const PowerRainbowStep& step : kPowerRainbowSteps) {
+            act.act.push_back({AlienFX_SDK::AlienFX_A_Power, kPowerRainbowHold,
+                               kPowerRainbowTempo, step.r, step.g, step.b});
+        }
+        if (!dev->dev->SetPowerAction(&act)) std::exit(1);
     });
 
     // setone dev light r g b

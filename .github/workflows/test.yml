@@ -1,0 +1,28 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: test-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build pkg-config git libudev-dev python3
+
+      - name: Configure, build, and test
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DALIENFX_BUILD_CLI=ON -DALIENFX_BUILD_TESTS=ON
+          cmake --build build
+          ctest --test-dir build --output-on-failure

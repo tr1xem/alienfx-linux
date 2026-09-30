@@ -164,6 +164,14 @@ class Functions {
     inline void AddV5DataBlock(uint8_t bPos, vector<Afx_icommand>* mods,
                                uint8_t index, Afx_action* act);
 
+    // Alienware 16 Area-51 AA16250 keyboard (Darfon 0d62:1bbc).
+    // Static color on this firmware is stop-animation, then wire-id color
+    // groups. The generic APIv5 loop and update reports are ignored while the
+    // hardware animation keeps running.
+    bool SetArea51KeyboardColor(vector<uint8_t>* lights, Afx_action c);
+    bool SetArea51KeyColors(vector<Afx_lightblock>* colors);
+    bool IsArea51Keyboard() const;
+
     // Support function to send whole power block for v1-v3
     void SavePowerBlock(uint8_t blID, Afx_lightblock* act, bool needSave,
                         bool needSecondary = false, bool needInverse = false);
@@ -234,6 +242,10 @@ class Functions {
     // act - pointer to vector of light control blocks (each define one light)
     // store - need to save settings into device memory (v1-v4)
     bool SetMultiAction(vector<Afx_lightblock>* act, bool store = false);
+
+    // One color per light. The Area-51 keyboard uses wire ids and does not
+    // send the generic APIv5 loop or update after the colors.
+    bool SetPerKeyColors(vector<Afx_lightblock>* colors);
 
     // Set color to action
     // index - light ID

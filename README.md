@@ -11,6 +11,19 @@ Tested on linux:
 - Alienware elc (g-series,alienware m series)
 - Darfon (alienware series)
 
+## Verified in this fork
+
+Per-key keyboard color is verified on one laptop. The Area-51 sequence runs only when the USB id is Darfon `0d62:1bbc`. For that id, the built-in key map wins over `~/.local/share/alienfx/mappings.json`. Other keyboards keep the upstream protocol and still need a mappings file. A Darfon keyboard with neither a shipped profile nor a mappings entry is reported by `setall` and left unchanged.
+
+| Laptop | Keyboard | What works here |
+| --- | --- | --- |
+| Alienware 16 Area-51 AA16250 | Darfon `0d62:1bbc`, chassis AW-ELC `187c:0551` | `setkeys` for per-key color, `keyboarddim` for keyboard brightness, `keyboardeffect` (`breathe`, `wave`, `pulse`, `spectrum`, `rainbow`), `powerbutton` for plugged-in and battery colors, `powerrainbow` for a slower rainbow on the power button. Selected by USB id. Static color and rainbow were used on this machine. |
+| Alienware 18 Area-51 AA18250 | not verified | Same generation. Not claimed. |
+
+`setall`, `setone`, `setzone`, `setaction`, `setpower`, `setdim`, `setglobal`, `status`, and `probe` behave as before. `setpower` is the existing per-device power command. `powerbutton` and `powerrainbow` target light `0x1b` on AW-ELC `187c:0551`, then `0550`. The lightbar, logo, speakers, and trackpad are still driven by AWCC, not by these keyboard commands.
+
+On `0d62:1bbc`, generic APIv5 color (index + 1, then loop and update) does not stick, and a reset before the color leaves the hardware animation running. This fork stops that animation and writes the wire ids with no index shift. That path is not used for any other PID.
+
 ## AlienFan-SDK
 
 Library for controlling fans and sensors of Alienware hardware.
@@ -61,6 +74,16 @@ Some notebooks can have 2 devices - APIv4 (for logo, power button, etc) and APIv
 - Global (all lights) hardware light effects (APIv5, v8)
 - Power/indicator button light control (AC/battery hardware switch and effects)
 
+## Testing
+
+```bash
+cmake -S . -B build -G Ninja -DALIENFX_BUILD_CLI=ON -DALIENFX_BUILD_TESTS=ON
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
+
+`pipe` starts `alienfx_cli`, writes to its stdin, and checks stdout, stderr, and the exit code. `--help` and `-h` must list the lighting commands. `setall` and `setkeys` with no arguments must fail before a device is opened. `lint` walks the C and C++ sources for trailing whitespace, CR bytes, a missing final newline, and conflict markers. Neither test names a laptop or opens a USB device. GitHub Actions runs both on every pull request, and once more on each push to `main`.
+
 ## Dependencies
 
 - cmake
@@ -106,6 +129,14 @@ OPTIONS:
 
 SUBCOMMANDS:
   setall                      r g b - set all lights
+  setkeys                     id r g b [id r g b ...] - set individual keyboard keys
+  keyboarddim                 0-255 - brightness of the Area-51 keyboard
+  keyboardeffect              breathe|wave|pulse|spectrum|rainbow r g b - hardware effect on
+                              the Area-51 keyboard
+  powerbutton                 r g b r2 g2 b2 - plugged-in color, then battery color, on the
+                              power button
+  powerrainbow                Slow rainbow on the power button, separate from the chassis
+                              animation
   setone                      dev light r g b - set one light
   setzone                     zone r g b - set zone lights
   setaction                   dev light action r g b [action r g b] - set light and enable

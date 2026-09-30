@@ -1,4 +1,5 @@
 #include "AlienFX_SDK.h"
+#include "Area51Protocol.h"
 
 #include <unistd.h>
 
@@ -356,6 +357,10 @@ bool Functions::UpdateColors() {
             //	GetDeviceStatus();
             //	break;
             case API_V5: {
+                if (IsArea51Keyboard()) {
+                    inSet = false;
+                    break;
+                }
                 inSet = !PrepareAndSend(COMMV5_update);
             } break;
             case API_V4: {
@@ -396,7 +401,84 @@ void Functions::AddV5DataBlock(uint8_t bPos, vector<Afx_icommand>* mods,
     mods->push_back({bPos, {(uint8_t)(index + 1), c->r, c->g, c->b}});
 }
 
+bool Functions::IsArea51Keyboard() const {
+    return IsArea51Usb(vid, pid);
+}
+
+bool Functions::SetArea51KeyColors(vector<Afx_lightblock>* colors) {
+    const int savedLength = length;
+    length = 64;
+    bool ok = true;
+
+    // 0x05, 0x06, and 0x07 stop the main key blocks. 0x01 is the other 0x8c
+    // block this report set documents, and it is the one the function row
+    // stays on when the other three have already been stopped. 0x13 is the
+    // loop command and must not be sent here.
+    for (uint8_t sub : kArea51StopSubs) {
+        vector<Afx_icommand> mods;
+        mods.push_back({4, vector<uint8_t>(60, 0x01)});
+        const uint8_t cmd[] = {2, 0x8c, sub};
+        ok = PrepareAndSend(cmd, &mods) && ok;
+    }
+    // No wait after the stop. A gap is enough for this firmware to put the
+    // previous effect back on the first color report, which is Esc and the
+    // function row. A gap between color reports does the same to the report
+    // that just went out.
+
+    vector<Area51KeyColor> keys;
+    if (colors) {
+        for (const Afx_lightblock& block : *colors) {
+            if (block.act.empty())
+                continue;
+            const Afx_action& c = block.act.front();
+            keys.push_back({block.index, c.r, c.g, c.b});
+        }
+    }
+    const vector<Area51Report> reports = PackArea51Reports(keys);
+    vector<vector<Afx_icommand>> packets;
+    packets.reserve(reports.size());
+    for (const Area51Report& report : reports) {
+        vector<Afx_icommand> mods;
+        uint8_t bPos = 4;
+        for (const Area51KeyColor& key : report.keys) {
+            mods.push_back({bPos, {key.id, key.r, key.g, key.b}});
+            bPos = static_cast<uint8_t>(bPos + 4);
+        }
+        if (!mods.empty())
+            packets.push_back(std::move(mods));
+    }
+
+    bool any = false;
+    for (const Area51Step& step : Area51SendOrder(packets.size())) {
+        if (step.kind == Area51StepKind::Stop)
+            continue;
+        vector<Afx_icommand> copy = packets[step.report];
+        any = PrepareAndSend(COMMV5_colorSet, &copy) && any;
+        ok = any && ok;
+    }
+
+    inSet = false;
+    length = savedLength;
+    return ok && any;
+}
+
+bool Functions::SetArea51KeyboardColor(vector<uint8_t>* lights, Afx_action c) {
+    vector<Afx_lightblock> blocks;
+    if (lights) {
+        blocks.reserve(lights->size());
+        for (uint8_t id : *lights) blocks.push_back({id, {c}});
+    }
+    return SetArea51KeyColors(&blocks);
+}
+
+bool Functions::SetPerKeyColors(vector<Afx_lightblock>* colors) {
+    if (IsArea51Keyboard()) return SetArea51KeyColors(colors);
+    return SetMultiAction(colors, false);
+}
+
 bool Functions::SetMultiColor(vector<uint8_t>* lights, Afx_action c) {
+    if (IsArea51Keyboard()) return SetArea51KeyboardColor(lights, c);
+
     bool val = false;
     Afx_lightblock act{0, {c}};
     vector<Afx_icommand> mods;
@@ -482,6 +564,8 @@ bool Functions::SetMultiColor(vector<uint8_t>* lights, Afx_action c) {
 }
 
 bool Functions::SetMultiAction(vector<Afx_lightblock>* act, bool save) {
+    if (IsArea51Keyboard()) return SetArea51KeyColors(act);
+
     bool val = true;
     vector<Afx_icommand> mods;
 
@@ -563,6 +647,10 @@ bool Functions::SetV4Action(Afx_lightblock* act) {
 
 bool Functions::SetAction(Afx_lightblock* act) {
     if (act->act.empty()) return false;
+    if (IsArea51Keyboard()) {
+        vector<Afx_lightblock> one{*act};
+        return SetArea51KeyColors(&one);
+    }
     if (!inSet) Reset();
 
     vector<Afx_icommand> mods;
@@ -698,6 +786,13 @@ bool Functions::SetPowerAction(Afx_lightblock* act) {
     switch (version) {
         // ToDo - APIv8 profile save
         case API_V4: {
+            // More than the usual AC/battery pair means "play these steps".
+            // The per-state rewrite below would turn that back into a fast pulse.
+            const bool playSteps =
+                act->act.size() > 2 &&
+                (act->act.front().type == AlienFX_A_Rainbow ||
+                 act->act.front().type == AlienFX_A_Morph ||
+                 act->act.front().type == AlienFX_A_Power);
             // Now set power button....
             for (uint8_t cid = 0x5b; cid < 0x61; cid++) {
                 // Init query...
@@ -705,6 +800,11 @@ bool Functions::SetPowerAction(Afx_lightblock* act) {
                 PrepareAndSend(COMMV4_setPower, {{4, {1, 0, cid}}});
                 // Now set color by type...
                 Afx_lightblock tact = *act;
+                if (playSteps) {
+                    SetV4Action(&tact);
+                    PrepareAndSend(COMMV4_setPower, {{4, {2, 0, cid}}});
+                    continue;
+                }
                 switch (cid) {
                     case 0x5b:  // AC sleep
                         tact.act.push_back(
@@ -825,6 +925,11 @@ bool Functions::SetBrightness(std::uint8_t brightness, std::uint8_t gbr,
             PrepareAndSend(COMMV8_setBrightness, {{2, {bright}}});
             return true;
         case API_V5:
+            if (IsArea51Keyboard()) {
+                PrepareAndSend(COMMV5_turnOnSet, {{4, {bright}}});
+                inSet = false;
+                return true;
+            }
             Reset();
             PrepareAndSend(COMMV5_turnOnSet, {{4, {bright}}});
             return true;
@@ -883,8 +988,12 @@ bool Functions::SetGlobalEffects(std::uint8_t effType, std::uint8_t mode,
             usleep(20);
             return true;
         case API_V5:
-            if (inSet) UpdateColors();
-            Reset();
+            if (!IsArea51Keyboard()) {
+                if (inSet) UpdateColors();
+                Reset();
+            }
+            if (IsArea51Keyboard())
+                length = 64;
             if (!effType)
                 PrepareAndSend(COMMV5_setEffect, {{2, {1, 0xfe}}});
             else
@@ -893,6 +1002,10 @@ bool Functions::SetGlobalEffects(std::uint8_t effType, std::uint8_t mode,
                                 {9,
                                  {(std::uint8_t)(nc - 1), act1.r, act1.g,
                                   act1.b, act2.r, act2.g, act2.b /*, mode*/}}});
+            if (IsArea51Keyboard()) {
+                inSet = false;
+                return true;
+            }
             return UpdateColors();
     }
     return false;
