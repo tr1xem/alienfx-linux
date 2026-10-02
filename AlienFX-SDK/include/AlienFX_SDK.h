@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "hidapi_libusb.h"
+#include "hidapi.h"
 #include "libusb.h"
 
 using namespace std;

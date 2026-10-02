@@ -524,6 +524,24 @@ int main(int argc, char** argv) {
     cmd_probe->add_option("--light", probe_light,
                           "Only probe a specific light id");
     cmd_probe->callback([&]() {
+#ifdef ALIENFX_HID_BACKEND_LIBUSB
+        // This build was configured with -DALIENFX_HID_BACKEND=libusb, which
+        // detaches the kernel driver from every HID interface it opens (see
+        // the comment on that option in AlienFX-SDK/CMakeLists.txt) and only
+        // reattaches it when the device is closed. `probe` opens every
+        // detected device and then blocks on an interactive prompt -- on
+        // hardware where an AlienFX-family VID also owns a HID input
+        // interface (e.g. some Darfon RGB keyboards), that combination can
+        // disable the very keyboard needed to answer the prompt, with no way
+        // to recover except from another machine or SSH. Refuse to run
+        // interactively.
+        cerr << "probe is disabled on a libusb-backend build: opening "
+                "devices detaches the kernel HID driver (disabling e.g. the "
+                "keyboard), then this command blocks on a prompt with no way "
+                "to answer it. Rebuild with the default "
+                "-DALIENFX_HID_BACKEND=hidraw.\n";
+        return;
+#endif
         ensureInit();
 
         for (auto& d : afx_map.fxdevs) {

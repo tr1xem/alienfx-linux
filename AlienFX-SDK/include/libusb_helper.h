@@ -3,7 +3,6 @@
 #include <cstdint>
 
 #include "hidapi.h"
-#include "hidapi_libusb.h"
 #include "libusb.h"
 
 //[Linux Compatibility] Gets the maximum packet size for IN endpoint for the
